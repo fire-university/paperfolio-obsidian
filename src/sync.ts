@@ -6,6 +6,7 @@ import type { Book } from "./types";
 import type { PaperFolioSettings } from "./settings";
 import type { State } from "./state";
 import { writeBook, writeIndex, IndexRow } from "./writer";
+import { enrichChapterTitles } from "./epub";
 
 export interface SyncResult {
 	books: number;
@@ -25,7 +26,8 @@ export async function runSync(
 	app: App,
 	books: Book[],
 	settings: PaperFolioSettings,
-	state: State
+	state: State,
+	volumeRoot: string | null
 ): Promise<SyncResult> {
 	const result: SyncResult = {
 		books: 0,
@@ -45,6 +47,9 @@ export async function runSync(
 			result.skippedBooks++;
 			continue;
 		}
+
+		// 899 對不到章節名的書(多為缺 TOC 的商店書)，開 epub 補章節名並重排
+		enrichChapterTitles(book, volumeRoot);
 
 		const stats = await writeBook(app, book, settings, state);
 		result.books++;

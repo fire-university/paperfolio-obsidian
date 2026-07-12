@@ -2,6 +2,7 @@
 // Phase 1(USB):插上 Kobo → 點一下 → 解析 KoboReader.sqlite → 寫進 vault。
 
 import * as fs from "fs";
+import * as path from "path";
 import { App, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
 import {
 	PaperFolioSettings,
@@ -44,6 +45,13 @@ export default class PaperFolioPlugin extends Plugin {
 		return this.settings.koboDbPath.trim() || DEFAULT_KOBO_DB_PATH;
 	}
 
+	// 掛載卷根目錄(epub 章節 fallback 用):DB 在 <root>/.kobo/KoboReader.sqlite。
+	// 非標準路徑(或無線推來的 DB)則回 null，epub fallback 自動跳過。
+	private volumeRoot(): string | null {
+		const dir = path.dirname(this.dbPath());
+		return path.basename(dir) === ".kobo" ? path.dirname(dir) : null;
+	}
+
 	async syncNow(): Promise<void> {
 		if (this.syncing) {
 			new Notice("PaperFolio：正在同步中，請稍候。");
@@ -77,7 +85,13 @@ export default class PaperFolioPlugin extends Plugin {
 			const books = await readBookmarks(bytes);
 
 			const state = new State(this.syncState);
-			const result = await runSync(this.app, books, this.settings, state);
+			const result = await runSync(
+				this.app,
+				books,
+				this.settings,
+				state,
+				this.volumeRoot()
+			);
 			this.syncState = state.export();
 			await this.saveAll();
 
