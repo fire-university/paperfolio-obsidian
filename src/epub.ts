@@ -135,24 +135,60 @@ function parseNav(xml: string): Map<string, { title: string; index: number }> {
 	return out;
 }
 
-// 899 對不到章節名時，開 epub 的 toc 補，並重排。移植自 pipeline._enrich_chapter_titles。
-export function enrichChapterTitles(
+// 章節快取:volumeId → { 章節basename: [章節名, 順序] }。
+// USB 同步時從 epub 的 toc 建，持久化到外掛 data.json;
+// 供無線模式(Phase 2，沒有 epub)沿用——實現「插一次線、之後無線也有完整章節」。
+export type ChapterCache = Record<string, Record<string, [string, number]>>;
+
+// 把一份「basename→章節」對照套進書的畫線(填缺的章節名/順序)並重排。
+function applyTitles(
 	book: Book,
-	volumeRoot: string | null
+	lookup: (base: string) => { title: string; index: number } | undefined
 ): void {
-	if (!volumeRoot) return; // 無線模式沒有掛載卷 → 跳過
-	if (book.bookmarks.every((b) => b.chapterTitle)) return; // 全部已有真章節名
-	const epubPath = resolveEpubPath(book.volumeId, volumeRoot);
-	if (!epubPath) return;
-	const titles = chapterTitles(epubPath);
-	if (titles.size === 0) return;
 	for (const b of book.bookmarks) {
 		if (b.chapterTitle) continue;
-		const t = titles.get(chapterBasename(b.contentId));
+		const t = lookup(chapterBasename(b.contentId));
 		if (t) {
 			b.chapterTitle = t.title;
 			b.chapterIndex = t.index;
 		}
 	}
 	sortBookmarks(book.bookmarks);
+}
+
+// 899 對不到章節名時補章節並重排。移植自 pipeline._enrich_chapter_titles，另加快取寫入。
+// - USB(volumeRoot 有):開 epub 的 toc 補，並把整本章節表寫進 cache 供無線沿用。
+// - 無線(volumeRoot=null，Phase 2 接讀取端):改查 cache[volumeId] 補。
+export function enrichChapterTitles(
+	book: Book,
+	volumeRoot: string | null,
+	cache?: ChapterCache
+): void {
+	if (book.bookmarks.every((b) => b.chapterTitle)) return; // 全部已有真章節名(899 就夠)
+
+	// USB:優先開 epub(權威來源)，成功就寫入快取
+	if (volumeRoot) {
+		const epubPath = resolveEpubPath(book.volumeId, volumeRoot);
+		if (epubPath) {
+			const titles = chapterTitles(epubPath);
+			if (titles.size > 0) {
+				applyTitles(book, (base) => titles.get(base));
+				if (cache) {
+					const rec: Record<string, [string, number]> = {};
+					for (const [base, v] of titles) rec[base] = [v.title, v.index];
+					cache[book.volumeId] = rec; // 之後無線(沒 epub)可查此表補章節
+				}
+				return;
+			}
+		}
+	}
+
+	// 無線 fallback(Phase 2 讀取端):沒有 epub 時，用 USB 曾建立的快取補章節
+	const cached = cache?.[book.volumeId];
+	if (cached) {
+		applyTitles(book, (base) => {
+			const v = cached[base];
+			return v ? { title: v[0], index: v[1] } : undefined;
+		});
+	}
 }

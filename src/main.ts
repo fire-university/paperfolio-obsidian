@@ -14,15 +14,19 @@ import {
 import { StateData, State } from "./state";
 import { readBookmarks } from "./parser";
 import { runSync, summarize } from "./sync";
+import { ChapterCache } from "./epub";
 
 interface PluginData {
 	settings: PaperFolioSettings;
 	syncState: StateData;
+	chapterCache: ChapterCache;
 }
 
 export default class PaperFolioPlugin extends Plugin {
 	settings: PaperFolioSettings = { ...DEFAULT_SETTINGS };
 	syncState: StateData = {};
+	// USB 同步時從 epub 建的章節快取;供無線模式(Phase 2)沿用。持久化在 data.json。
+	chapterCache: ChapterCache = {};
 	private syncing = false;
 
 	async onload() {
@@ -90,7 +94,8 @@ export default class PaperFolioPlugin extends Plugin {
 				books,
 				this.settings,
 				state,
-				this.volumeRoot()
+				this.volumeRoot(),
+				this.chapterCache
 			);
 			this.syncState = state.export();
 			await this.saveAll();
@@ -115,12 +120,14 @@ export default class PaperFolioPlugin extends Plugin {
 			data?.settings ?? {}
 		);
 		this.syncState = data?.syncState ?? {};
+		this.chapterCache = data?.chapterCache ?? {};
 	}
 
 	async saveAll(): Promise<void> {
 		const data: PluginData = {
 			settings: this.settings,
 			syncState: this.syncState,
+			chapterCache: this.chapterCache,
 		};
 		await this.saveData(data);
 	}

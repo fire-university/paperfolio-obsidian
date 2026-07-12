@@ -4,7 +4,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { readBookmarks } from "../src/parser";
-import { enrichChapterTitles } from "../src/epub";
+import { enrichChapterTitles, ChapterCache } from "../src/epub";
 import { DEFAULT_SETTINGS, PaperFolioSettings } from "../src/settings";
 import {
 	bookFilename,
@@ -19,6 +19,7 @@ async function main() {
 	const outDir = process.argv[3];
 	const volumeRoot = process.argv[4] || null; // 掛載卷根目錄，供 epub fallback
 	const settings: PaperFolioSettings = { ...DEFAULT_SETTINGS };
+	const chapterCache: ChapterCache = {}; // 驗證 USB 是否有寫入章節快取
 
 	const books = await readBookmarks(new Uint8Array(fs.readFileSync(dbPath)));
 	fs.mkdirSync(outDir, { recursive: true });
@@ -39,7 +40,7 @@ async function main() {
 			skipped++;
 			continue;
 		}
-		enrichChapterTitles(book, volumeRoot);
+		enrichChapterTitles(book, volumeRoot, chapterCache);
 		for (const b of book.bookmarks) {
 			if (b.type === "highlight" || b.type === "note") {
 				b.chapterTitle ? chHit++ : chMiss++;
@@ -78,6 +79,35 @@ async function main() {
 	// 真章節名覆蓋率(匯入書、enrich 後)
 	const pct = chHit + chMiss ? Math.round((100 * chHit) / (chHit + chMiss)) : 0;
 	console.log(`有真章節名的畫線: ${chHit}/${chHit + chMiss}（${pct}%）`);
+
+	// 章節快取(USB 從 epub 建，供無線沿用):存了幾本書
+	const cachedBooks = Object.keys(chapterCache).length;
+	const cachedChapters = Object.values(chapterCache).reduce(
+		(s, rec) => s + Object.keys(rec).length,
+		0
+	);
+	console.log(`章節快取: ${cachedBooks} 本書、${cachedChapters} 個章節條目`);
+
+	// 模擬無線:同一批書「沒有 volumeRoot、只靠快取」，看章節覆蓋能否維持
+	const wireless = await readBookmarks(
+		new Uint8Array(fs.readFileSync(dbPath))
+	);
+	let wHit = 0;
+	let wMiss = 0;
+	for (const book of wireless) {
+		const total = book.bookmarks.filter(
+			(b) => b.type !== "dogear" || settings.includeDogears
+		).length;
+		if (total < settings.minAnnotations) continue;
+		enrichChapterTitles(book, null, chapterCache); // volumeRoot=null 模擬無線
+		for (const b of book.bookmarks) {
+			if (b.type === "highlight" || b.type === "note") {
+				b.chapterTitle ? wHit++ : wMiss++;
+			}
+		}
+	}
+	const wPct = wHit + wMiss ? Math.round((100 * wHit) / (wHit + wMiss)) : 0;
+	console.log(`無線模擬(只靠快取)章節覆蓋: ${wHit}/${wHit + wMiss}（${wPct}%）`);
 
 	// 沒對到書名(用檔名 fallback)的書
 	const noTitle = books.filter((b) => !b.title || b.title === "未命名書籍");
