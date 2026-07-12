@@ -1,0 +1,30 @@
+{
+	"name": "paperfolio-obsidian",
+	"version": "0.1.0",
+	"description": "Sync Kobo highlights into Obsidian — one clean note per book.",
+	"main": "main.js",
+	"scripts": {
+		"dev": "node esbuild.config.mjs",
+		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
+	},
+	"keywords": [
+		"obsidian",
+		"kobo",
+		"highlights",
+		"ereader"
+	],
+	"author": "Doug (fire-university)",
+	"license": "MIT",
+	"devDependencies": {
+		"@types/node": "^20.11.0",
+		"@types/sql.js": "^1.4.9",
+		"builtin-modules": "^3.3.0",
+		"esbuild": "^0.20.2",
+		"obsidian": "latest",
+		"tslib": "^2.6.2",
+		"typescript": "^5.4.5"
+	},
+	"dependencies": {
+		"sql.js": "^1.10.3"
+	}
+}

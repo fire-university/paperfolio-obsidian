@@ -1,0 +1,14 @@
+# 相依套件
+node_modules/
+
+# 建置產物(release 時才由 build 產生)
+main.js
+*.js.map
+
+# 系統雜檔
+.DS_Store
+
+# 個人測試用的 Kobo 資料庫(絕不進版控)
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
