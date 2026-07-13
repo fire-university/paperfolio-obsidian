@@ -20,6 +20,11 @@ export interface PaperFolioSettings {
 	includeDogears: boolean; // 預設 false(道哥只要畫線;且無 epub 還原)
 	dogearLabel: string;
 	filenameFormat: FilenameFormat;
+
+	// --- 無線接收(LAN) ---
+	receiverEnabled: boolean; // Obsidian 開著時聽一個埠，Kobo 一鍵推 DB
+	receiverPort: number;
+	receiverToken: string; // 共享密鑰(Kobo 帶同一組;首次啟用自動產生)
 }
 
 // 預設掛載路徑(macOS)。Kobo 插上後通常掛在這。
@@ -37,4 +42,7 @@ export const DEFAULT_SETTINGS: PaperFolioSettings = {
 	includeDogears: false,
 	dogearLabel: "【折頁】",
 	filenameFormat: "title",
+	receiverEnabled: false,
+	receiverPort: 8321,
+	receiverToken: "",
 };
