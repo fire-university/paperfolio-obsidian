@@ -1,0 +1,11 @@
+# NickelMenu 設定 — PaperFolio（LAN 無線同步）
+# 放到 Kobo 的 /.adds/nm/paperfolio。
+# 同步：背景執行(cmd_spawn，不受 NickelMenu 10 秒限制)；先自動連 WiFi 再跑腳本。
+
+menu_item :main :PaperFolio 同步畫線 :nickel_wifi :autoconnect
+  chain_success :cmd_spawn :quiet:sh /mnt/onboard/.adds/folio/send-highlights.sh
+  chain_success :dbg_toast :同步中，稍候看電腦通知
+
+menu_item :reader :PaperFolio 同步畫線 :nickel_wifi :autoconnect
+  chain_success :cmd_spawn :quiet:sh /mnt/onboard/.adds/folio/send-highlights.sh
+  chain_success :dbg_toast :同步中，稍候看電腦通知
