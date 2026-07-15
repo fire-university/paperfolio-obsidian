@@ -9,6 +9,7 @@ import type { Database, SqlJsStatic, QueryExecResult } from "sql.js";
 // esbuild 以 binary loader 內嵌 sql.js 的 wasm(見 esbuild.config.mjs / wasm.d.ts)。
 import wasmBinary from "sql.js/dist/sql-wasm.wasm";
 import type { Book, Bookmark } from "./types";
+import { t } from "./i18n";
 
 // kepub 的 StartContainerPath 形如 span#kobo\.14\.1；N=段落序號、M=段落內序號，越大越後面。
 const KOBO_SPAN = /kobo\D*(\d+)\D+(\d+)/;
@@ -197,5 +198,5 @@ function fallbackTitle(volumeId: string): string {
 			break;
 		}
 	}
-	return name || "未命名書籍";
+	return name || t("untitled_book");
 }

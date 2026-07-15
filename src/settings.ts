@@ -1,10 +1,15 @@
 // 外掛設定:對應 SPEC §12。Phase 1(USB)只用到排版/門檻/路徑相關;
 // 無線接收埠等留給 Phase 2。
 
+import type { LangSetting } from "./i18n";
+
 export type HighlightStyle = "callout" | "blockquote" | "bullet";
 export type FilenameFormat = "title" | "title_author";
 
 export interface PaperFolioSettings {
+	// 介面與筆記語言:auto 跟 Obsidian、en、zh-TW
+	language: LangSetting;
+
 	// Kobo 的 KoboReader.sqlite 路徑;留空 = 自動用預設掛載路徑。
 	koboDbPath: string;
 	// 輸出資料夾(vault 相對路徑);工具永遠只碰這裡。
@@ -32,6 +37,7 @@ export const DEFAULT_KOBO_DB_PATH =
 	"/Volumes/KOBOeReader/.kobo/KoboReader.sqlite";
 
 export const DEFAULT_SETTINGS: PaperFolioSettings = {
+	language: "auto",
 	koboDbPath: "",
 	outputFolder: "PaperFolio",
 	minAnnotations: 3,

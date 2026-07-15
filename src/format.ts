@@ -4,20 +4,25 @@
 
 import type { Book, Bookmark } from "./types";
 import type { PaperFolioSettings } from "./settings";
+import { t, bookTitle } from "./i18n";
 
 export const PRODUCT = "PaperFolio";
 
-export const SENTINEL_START = "<!-- KOBO:START 自動維護，勿手改此區塊內文字 -->";
 export const SENTINEL_END = "<!-- KOBO:END -->";
-export const INDEX_NAME = "00_Kobo 畫線索引.md";
 
-function escapeRegex(s: string): string {
-	return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+// 開始哨兵:核心標記 KOBO:START 固定，後面說明文字隨語言。寫入時用當前語言。
+function sentinelStart(): string {
+	return `<!-- KOBO:START ${t("sentinel_note")} -->`;
 }
 
-export const BLOCK_RE = new RegExp(
-	escapeRegex(SENTINEL_START) + "[\\s\\S]*?" + escapeRegex(SENTINEL_END)
-);
+// 索引檔名隨語言(道哥保持繁中則不變)。
+export function indexFilename(): string {
+	return t("index_filename");
+}
+
+// 語言無關:只認核心標記 KOBO:START…KOBO:END，這樣不同語言/舊筆記的說明文字都對得到，
+// 翻譯說明也不會弄壞既有筆記的增量比對。
+export const BLOCK_RE = /<!--\s*KOBO:START[\s\S]*?KOBO:END\s*-->/;
 const INVALID_FS = /[\\/:*?"<>|]/g;
 
 export function today(): string {
@@ -33,7 +38,7 @@ function shortDate(raw: string): string {
 export function sanitizeFilename(name: string): string {
 	// 特殊字元換成全形空格，避免破壞檔名;去頭尾空白與句點;長度上限 120。
 	const cleaned = name.replace(INVALID_FS, "　").trim().replace(/\.+$/, "");
-	return (cleaned || "未命名書籍").slice(0, 120);
+	return (cleaned || t("untitled_book")).slice(0, 120);
 }
 
 export function bookFilename(book: Book, filenameFormat: string): string {
@@ -60,7 +65,7 @@ function renderHighlight(b: Bookmark, s: PaperFolioSettings): string {
 			.join("\n");
 		let out = head + "\n" + body;
 		if (tag) out += `\n> ${tag}`;
-		if (ann) out += `\n>\n> 附註：${ann}`;
+		if (ann) out += `\n>\n> ${t("annotation_prefix")}${ann}`;
 		return out;
 	}
 
@@ -68,14 +73,14 @@ function renderHighlight(b: Bookmark, s: PaperFolioSettings): string {
 		const suffix = date ? `（${date}）` : "";
 		let line = `- ${text}${suffix}`;
 		if (tag) line += ` ${tag}`;
-		if (ann) line += `\n  - 附註：${ann}`;
+		if (ann) line += `\n  - ${t("annotation_prefix")}${ann}`;
 		return line;
 	}
 
 	// blockquote(傳統)
 	const lines = text.split("\n").map((ln) => `> ${ln}`);
 	if (tag) lines.push(`> ${tag}`);
-	if (ann) lines.push("", `　　附註：${ann}`);
+	if (ann) lines.push("", `　　${t("annotation_prefix")}${ann}`);
 	if (date) lines.push("", `　　— ${date}`);
 	return lines.join("\n");
 }
@@ -83,8 +88,8 @@ function renderHighlight(b: Bookmark, s: PaperFolioSettings): string {
 function renderDogear(b: Bookmark, s: PaperFolioSettings): string {
 	// Phase 1:只記位置(無 epub 文字還原)。
 	const pct = Math.round(b.chapterProgress * 100);
-	const ch = b.chapterTitle || "（未知章節）";
-	return `${s.dogearLabel}${ch}，約 ${pct}% 處（僅記位置）`;
+	const ch = b.chapterTitle || t("chapter_unknown");
+	return t("dogear_position_only", { label: s.dogearLabel, chapter: ch, pct });
 }
 
 function renderItem(b: Bookmark, s: PaperFolioSettings): string | null {
@@ -97,7 +102,7 @@ function renderItem(b: Bookmark, s: PaperFolioSettings): string | null {
 }
 
 export function buildKoboBlock(book: Book, s: PaperFolioSettings): string {
-	const parts: string[] = [SENTINEL_START, ""];
+	const parts: string[] = [sentinelStart(), ""];
 	let currentChapter: string | undefined = undefined;
 	for (const b of book.bookmarks) {
 		if (s.groupByChapter) {
@@ -128,22 +133,22 @@ export function renderBookBody(book: Book, s: PaperFolioSettings): string {
 // ---------- 整檔組裝 ----------
 
 export function newFileContent(book: Book, block: string): string {
-	const t = today();
+	const today_ = today();
 	return [
 		"---",
-		`title: 《${book.title}》`,
+		`title: ${bookTitle(book.title)}`,
 		`author: ${book.author}`,
 		"source: kobo",
 		`generated_by: ${PRODUCT.toLowerCase()}`,
 		`isbn: ${book.isbn}`,
 		"tags: [kobo, reading]",
-		`created: ${t}`,
-		`last_synced: ${t}`,
+		`created: ${today_}`,
+		`last_synced: ${today_}`,
 		"---",
 		"",
-		`# 《${book.title}》`,
+		`# ${bookTitle(book.title)}`,
 		"",
-		"（此行以上留給你手寫總結／心得，工具不會碰）",
+		t("note_summary_prompt"),
 		"",
 		block,
 		"",
@@ -151,7 +156,7 @@ export function newFileContent(book: Book, block: string): string {
 }
 
 export function mergeIntoExisting(existing: string, block: string): string {
-	const t = today();
+	const today_ = today();
 	let merged: string;
 	if (BLOCK_RE.test(existing)) {
 		// 用函式回傳避免 block 內的 $ 被當成 replace 特殊符號
@@ -160,7 +165,7 @@ export function mergeIntoExisting(existing: string, block: string): string {
 		merged = existing.replace(/\s+$/, "") + "\n\n" + block + "\n";
 	}
 	// 只更新第一個 last_synced，其他 frontmatter 不動
-	merged = merged.replace(/^(last_synced:).*$/m, `$1 ${t}`);
+	merged = merged.replace(/^(last_synced:).*$/m, `$1 ${today_}`);
 	return merged;
 }
 
@@ -183,19 +188,31 @@ export function buildIndexContent(
 
 	const include = settings.includeDogears;
 	const summary = include
-		? `共 ${sorted.length} 本書、${totalH} 條畫線、${totalD} 個折頁。此檔與本資料夾所有筆記皆由 ${PRODUCT} 自動產生。`
-		: `共 ${sorted.length} 本書、${totalH} 條畫線。此檔與本資料夾所有筆記皆由 ${PRODUCT} 自動產生。`;
+		? t("index_summary_dogears", {
+				books: sorted.length,
+				h: totalH,
+				d: totalD,
+				product: PRODUCT,
+		  })
+		: t("index_summary_plain", {
+				books: sorted.length,
+				h: totalH,
+				product: PRODUCT,
+		  });
 
+	const colBook = t("index_col_book");
+	const colH = t("index_col_highlights");
+	const colD = t("index_col_dogears");
 	const table = include
-		? ["| 書 | 畫線 | 折頁 |", "| :-- | --: | --: |"]
-		: ["| 書 | 畫線 |", "| :-- | --: |"];
+		? [`| ${colBook} | ${colH} | ${colD} |`, "| :-- | --: | --: |"]
+		: [`| ${colBook} | ${colH} |`, "| :-- | --: |"];
 
 	for (const [title, h, d, fname] of sorted) {
 		const stem = fname.endsWith(".md") ? fname.slice(0, -3) : fname;
 		table.push(
 			include
-				? `| [[${stem}\\|《${title}》]] | ${h} | ${d} |`
-				: `| [[${stem}\\|《${title}》]] | ${h} |`
+				? `| [[${stem}\\|${bookTitle(title)}]] | ${h} | ${d} |`
+				: `| [[${stem}\\|${bookTitle(title)}]] | ${h} |`
 		);
 	}
 
@@ -206,7 +223,7 @@ export function buildIndexContent(
 		`last_synced: ${today()}`,
 		"---",
 		"",
-		"# Kobo 畫線索引",
+		`# ${t("index_heading")}`,
 		"",
 		summary,
 		"",

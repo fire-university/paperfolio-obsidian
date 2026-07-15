@@ -12,7 +12,7 @@ import {
 	newFileContent,
 	mergeIntoExisting,
 	buildIndexContent,
-	INDEX_NAME,
+	indexFilename,
 	IndexRow,
 } from "./format";
 
@@ -79,6 +79,6 @@ export async function writeIndex(
 	settings: PaperFolioSettings
 ): Promise<void> {
 	await ensureFolder(app, settings.outputFolder);
-	const path = normalizePath(`${settings.outputFolder}/${INDEX_NAME}`);
+	const path = normalizePath(`${settings.outputFolder}/${indexFilename()}`);
 	await app.vault.adapter.write(path, buildIndexContent(rows, settings));
 }

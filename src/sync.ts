@@ -7,6 +7,7 @@ import type { PaperFolioSettings } from "./settings";
 import type { State } from "./state";
 import { writeBook, writeIndex, IndexRow } from "./writer";
 import { enrichChapterTitles, ChapterCache } from "./epub";
+import { t } from "./i18n";
 
 export interface SyncResult {
 	books: number;
@@ -18,8 +19,15 @@ export interface SyncResult {
 }
 
 export function summarize(r: SyncResult): string {
-	const extra = r.skippedBooks ? `，略過 ${r.skippedBooks} 本零星書` : "";
-	return `已匯入 ${r.highlights} 條畫線、${r.dogears} 個折頁（${r.books} 本書${extra}）`;
+	const extra = r.skippedBooks
+		? t("summary_extra", { n: r.skippedBooks })
+		: "";
+	return t("summary", {
+		h: r.highlights,
+		d: r.dogears,
+		books: r.books,
+		extra,
+	});
 }
 
 export async function runSync(
