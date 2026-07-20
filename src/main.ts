@@ -6,7 +6,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 import { randomBytes } from "crypto";
-import { App, Notice, Plugin, PluginSettingTab, Setting } from "obsidian";
+import { App, Notice, Plugin, PluginSettingTab, Setting, moment } from "obsidian";
 import {
 	PaperFolioSettings,
 	DEFAULT_SETTINGS,
@@ -252,10 +252,15 @@ export default class PaperFolioPlugin extends Plugin {
 			DEFAULT_SETTINGS,
 			data?.settings ?? {}
 		);
-		setLang(this.settings.language);
+		this.applyLang();
 		this.syncState = data?.syncState ?? {};
 		this.chapterCache = data?.chapterCache ?? {};
 		this.indexState = data?.indexState ?? {};
+	}
+
+	// 語言 auto 時跟 Obsidian 顯示語言走;用官方匯出的 moment 取得語系碼。
+	applyLang(): void {
+		setLang(this.settings.language, moment.locale());
 	}
 
 	async saveAll(): Promise<void> {
@@ -291,7 +296,7 @@ class PaperFolioSettingTab extends PluginSettingTab {
 					.setValue(s.language)
 					.onChange((v) => {
 						s.language = v as LangSetting;
-						setLang(s.language);
+						this.plugin.applyLang();
 						save();
 						this.display(); // 重繪讓設定頁即時換語言
 					})

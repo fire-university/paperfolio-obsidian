@@ -1,26 +1,21 @@
 // 輕量 i18n:一個 t(key) + en / zh-TW 兩份字典。無官方框架，自建。
 // 語言由設定決定:auto = 跟 Obsidian 顯示語言走;否則用指定語言。預設 fallback 英文。
-// 純模組(node 測試時 window 不存在 → 走 try/catch 回 en)。
+// 純模組:不依賴任何瀏覽器 API,語系碼由呼叫端傳入,node 測試可直接跑。
 
 export type LangSetting = "auto" | "en" | "zh-TW";
 type Lang = "en" | "zh-TW";
 
 let current: Lang = "en";
 
-export function resolveLang(setting: LangSetting): Lang {
+// setting 為 auto 時，依呼叫端提供的語系碼決定(由 main.ts 用 Obsidian 官方 API 取得)。
+// 本模組維持純函式、不碰任何瀏覽器儲存，也能在 node 測試環境直接跑。
+export function resolveLang(setting: LangSetting, locale = ""): Lang {
 	if (setting === "en" || setting === "zh-TW") return setting;
-	// auto:讀 Obsidian 存在 localStorage 的顯示語言碼(zh-TW / zh / null 等)
-	let code = "";
-	try {
-		code = (window.localStorage.getItem("language") || "").toLowerCase();
-	} catch (e) {
-		/* node 測試環境無 window */
-	}
-	return code.startsWith("zh") ? "zh-TW" : "en";
+	return locale.toLowerCase().startsWith("zh") ? "zh-TW" : "en";
 }
 
-export function setLang(setting: LangSetting): void {
-	current = resolveLang(setting);
+export function setLang(setting: LangSetting, locale = ""): void {
+	current = resolveLang(setting, locale);
 }
 
 export function currentLang(): Lang {
