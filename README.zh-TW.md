@@ -1,6 +1,6 @@
 [English](README.md) ｜ **繁體中文**
 
-# PaperFolio - Kobo Highlights
+# PaperFolio for Kobo
 
 把 Kobo 的畫線乾淨地匯入 Obsidian：**一本書一則筆記**，依真實閱讀順序排列、用真章節名分組，而且你自己寫的東西完全不會被動到。
 
