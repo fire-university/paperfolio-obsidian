@@ -31,11 +31,14 @@ export function resolveEpubPath(
 		if (fs.existsSync(cand)) return cand;
 	}
 
-	// 商店書:VolumeID 是 UUID → .kobo/kepub/<UUID>
+	// 商店書:VolumeID 是 UUID(無副檔名的 EPUB)
+	// 裝置: <卷>/.kobo/kepub/<UUID>   Kobo Desktop: <資料目錄>/kepub/<UUID>
 	const bare = vid.split("/").pop() ?? vid;
 	for (const cand of [
 		path.join(volumeRoot, ".kobo", "kepub", bare),
 		path.join(volumeRoot, ".kobo", "kepub", vid),
+		path.join(volumeRoot, "kepub", bare),
+		path.join(volumeRoot, "kepub", vid),
 	]) {
 		if (fs.existsSync(cand)) return cand;
 	}
@@ -161,26 +164,24 @@ function applyTitles(
 // - 無線(volumeRoot=null，Phase 2 接讀取端):改查 cache[volumeId] 補。
 export function enrichChapterTitles(
 	book: Book,
-	volumeRoot: string | null,
+	volumeRoots: string[],
 	cache?: ChapterCache
 ): void {
 	if (book.bookmarks.every((b) => b.chapterTitle)) return; // 全部已有真章節名(899 就夠)
 
-	// USB:優先開 epub(權威來源)，成功就寫入快取
-	if (volumeRoot) {
-		const epubPath = resolveEpubPath(book.volumeId, volumeRoot);
-		if (epubPath) {
-			const titles = chapterTitles(epubPath);
-			if (titles.size > 0) {
-				applyTitles(book, (base) => titles.get(base));
-				if (cache) {
-					const rec: Record<string, [string, number]> = {};
-					for (const [base, v] of titles) rec[base] = [v.title, v.index];
-					cache[book.volumeId] = rec; // 之後無線(沒 epub)可查此表補章節
-				}
-				return;
-			}
+	// 有本機書檔時(USB 掛載卷 / Kobo Desktop 資料目錄):開 epub 取權威章節，並寫入快取
+	for (const root of volumeRoots) {
+		const epubPath = resolveEpubPath(book.volumeId, root);
+		if (!epubPath) continue;
+		const titles = chapterTitles(epubPath);
+		if (titles.size === 0) continue;
+		applyTitles(book, (base) => titles.get(base));
+		if (cache) {
+			const rec: Record<string, [string, number]> = {};
+			for (const [base, v] of titles) rec[base] = [v.title, v.index];
+			cache[book.volumeId] = rec; // 之後無線(沒 epub)可查此表補章節
 		}
+		return;
 	}
 
 	// 無線 fallback(Phase 2 讀取端):沒有 epub 時，用 USB 曾建立的快取補章節

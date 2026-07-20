@@ -12,6 +12,8 @@ export interface PaperFolioSettings {
 
 	// Kobo 的 KoboReader.sqlite 路徑;留空 = 自動用預設掛載路徑。
 	koboDbPath: string;
+	// Kobo Desktop(電腦版)的本機資料庫路徑;留空 = 自動偵測。設 "off" 可停用此來源。
+	koboDesktopDbPath: string;
 	// 輸出資料夾(vault 相對路徑);工具永遠只碰這裡。
 	outputFolder: string;
 	// 門檻:一本書畫線＋(折頁若含)合計低於此數就不匯入。
@@ -36,9 +38,15 @@ export interface PaperFolioSettings {
 export const DEFAULT_KOBO_DB_PATH =
 	"/Volumes/KOBOeReader/.kobo/KoboReader.sqlite";
 
+// Kobo Desktop(電腦版)資料目錄與資料庫(macOS 預設);書檔在同層 kepub/。
+export const DEFAULT_KOBO_DESKTOP_DIR =
+	"Library/Application Support/Kobo/Kobo Desktop Edition";
+export const KOBO_DESKTOP_DB_NAME = "Kobo.sqlite";
+
 export const DEFAULT_SETTINGS: PaperFolioSettings = {
 	language: "auto",
 	koboDbPath: "",
+	koboDesktopDbPath: "",
 	outputFolder: "PaperFolio",
 	minAnnotations: 3,
 	highlightStyle: "callout",

@@ -69,6 +69,13 @@ const EN: Dict = {
 	// 設定 — 一般
 	set_db_path_name: "Kobo database path",
 	set_db_path_desc: "Leave empty to use the default mount path. Default: {path}",
+	set_desktop_db_name: "Kobo Desktop database path",
+	set_desktop_db_desc:
+		"Highlights you make while reading in the Kobo Desktop app are imported too, with no cable and without touching your device. Leave empty to auto-detect; type \"off\" to disable this source.",
+	desktop_db_detected: "Detected: {path}",
+	desktop_db_none: "Not found (Kobo Desktop may not be installed).",
+	notice_no_source:
+		"PaperFolio: no Kobo database found.\nPlug in your Kobo, or check the paths in settings.",
 	set_output_name: "Output folder",
 	set_output_desc:
 		"Notes are written to this folder in your vault; the plugin only ever touches this folder.",
@@ -166,6 +173,13 @@ const ZH: Dict = {
 
 	set_db_path_name: "Kobo 資料庫路徑",
 	set_db_path_desc: "留空就用預設掛載路徑。預設：{path}",
+	set_desktop_db_name: "Kobo Desktop 資料庫路徑",
+	set_desktop_db_desc:
+		"連你在電腦上用 Kobo Desktop 讀書時畫的線也會一起匯入，不用插線、也不會碰到裝置。留空＝自動偵測；填 off 可停用這個來源。",
+	desktop_db_detected: "已偵測到：{path}",
+	desktop_db_none: "找不到（可能沒安裝 Kobo Desktop）。",
+	notice_no_source:
+		"PaperFolio：找不到任何 Kobo 資料庫。\n請插上 Kobo，或到設定確認路徑。",
 	set_output_name: "輸出資料夾",
 	set_output_desc: "筆記寫到 vault 的這個資料夾；工具永遠只碰這裡。",
 	set_threshold_name: "匯入門檻",
