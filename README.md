@@ -1,3 +1,5 @@
+**English** ｜ [繁體中文](README.zh-TW.md)
+
 # PaperFolio – Kobo Highlights
 
 Import your Kobo highlights into Obsidian: **one clean note per book**, sorted by true reading order, grouped by real chapter names, with anything you write yourself left untouched.
