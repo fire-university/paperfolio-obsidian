@@ -1,9 +1,9 @@
 {
 	"id": "paperfolio-kobo",
-	"name": "PaperFolio for Kobo",
-	"version": "0.1.0",
+	"name": "PaperFolio – Kobo Highlights",
+	"version": "1.0.0",
 	"minAppVersion": "1.4.0",
-	"description": "Sync your Kobo highlights into Obsidian — one clean note per book, sorted by true reading order, grouped by chapter, with your handwritten notes protected.",
+	"description": "Import your Kobo highlights into Obsidian: one clean note per book, sorted by true reading order and grouped by chapter, with your own notes protected. Reads from a connected Kobo eReader or the Kobo desktop app.",
 	"author": "Doug (fire-university)",
 	"authorUrl": "https://firetw.com",
 	"isDesktopOnly": true
