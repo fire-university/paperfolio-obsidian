@@ -1,6 +1,6 @@
 {
 	"name": "paperfolio-obsidian",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"description": "Sync Kobo highlights into Obsidian — one clean note per book.",
 	"main": "main.js",
 	"scripts": {

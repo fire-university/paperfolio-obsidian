@@ -1,0 +1,61 @@
+name: Release
+
+# 推一個版本標籤（例如 1.0.2）就會自動建置、簽章、發布。
+# 產生的 artifact attestation 讓任何人都能驗證 release 裡的檔案
+# 確實是從本 repo 的該 commit 建置出來的。
+on:
+  push:
+    tags: ["*.*.*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write # 建立 release、上傳附件
+  id-token: write # 簽章用的 OIDC token
+  attestations: write # 寫入建置來源證明
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify manifest version matches the tag
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          manifest_version=$(node -p "require('./manifest.json').version")
+          if [ "$tag" != "$manifest_version" ]; then
+            echo "Tag ($tag) does not match manifest.json version ($manifest_version)." >&2
+            exit 1
+          fi
+          echo "Version $tag matches manifest.json."
+
+      - name: Generate build provenance attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            main.js
+            manifest.json
+            styles.css
+
+      - name: Publish release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" main.js manifest.json styles.css --clobber
+          else
+            gh release create "$tag" main.js manifest.json styles.css \
+              --title "$tag" --generate-notes
+          fi
