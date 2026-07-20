@@ -8,6 +8,8 @@ Works with a Kobo eReader over USB, with the **Kobo desktop app** (no cable need
 
 > Desktop-only. Everything stays on your machine: no accounts, no servers, no telemetry.
 
+![A book note: highlights grouped under real chapter headings, as dated callouts](docs/images/book-note.jpg)
+
 ## Why another Kobo plugin
 
 Most importers give you a flat dump of highlights. PaperFolio focuses on the things that make the notes actually usable months later:
@@ -27,6 +29,8 @@ Most importers give you a flat dump of highlights. PaperFolio focuses on the thi
 - Import threshold to skip books with only a stray highlight or two.
 - Optional dogears (position only — Kobo does not store text for them).
 - English and Traditional Chinese, following your Obsidian language by default.
+
+![The generated index note, listing every book by highlight count](docs/images/index-note.jpg)
 
 ## Sources
 
@@ -63,6 +67,8 @@ Chapter names are cached from earlier USB syncs, so wireless syncs keep full cha
 | Group by chapter, show date, color as tag, filename format | Formatting |
 | Import dogears, dogear label | Dogears (off by default) |
 | Wireless receiver | Enable, port, key, sync address |
+
+![The plugin settings tab](docs/images/settings-en.jpg)
 
 ## How your notes are updated
 
