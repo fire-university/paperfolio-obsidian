@@ -8,7 +8,7 @@ DIR="/mnt/onboard/.adds/folio"
 DB="/mnt/onboard/.kobo/KoboReader.sqlite"
 
 # === 這兩行安裝時填 ===
-URL="http://REPLACE-ME-IP:8322/sync"   # 你 Mac 的 LAN 同步位址（例 http://192.168.1.108:8322/sync）
+URL="http://REPLACE-ME-IP:8322/sync"   # 你電腦的 LAN 同步位址（例 http://192.168.1.20:8322/sync）
 TOKEN="REPLACE-ME-TOKEN"               # PaperFolio 接收密鑰
 # ======================
 
