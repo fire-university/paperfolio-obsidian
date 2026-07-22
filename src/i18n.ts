@@ -116,6 +116,17 @@ const EN: Dict = {
 	set_syncurl_desc:
 		"Put this address and the key above into the Kobo push script (same Wi-Fi only).",
 	syncurl_none: "(No LAN IP found; make sure your Mac is connected to Wi-Fi.)",
+	set_genpkg_name: "Generate Kobo install package",
+	set_genpkg_desc:
+		"Builds a KoboRoot.tgz with the address and key above already filled in. Requires NickelMenu already installed on the Kobo. Drop the file into the Kobo's .kobo/ folder and safely eject — it installs itself, no editing needed. If the IP changes later, just generate a new one.",
+	btn_genpkg: "Generate install package",
+	pkg_save_title: "Save Kobo install package",
+	notice_pkg_need_receiver:
+		"PaperFolio: turn on the wireless receiver above first (a key is generated automatically).",
+	notice_pkg_no_lan:
+		"PaperFolio: no LAN IP found; make sure your Mac is connected to Wi-Fi.",
+	notice_pkg_saved: "PaperFolio: install package saved to {path}",
+	notice_pkg_failed: "PaperFolio: failed to save install package.\n{err}",
 
 	// 設定 — 語言
 	set_language_name: "Language",
@@ -214,6 +225,15 @@ const ZH: Dict = {
 	set_syncurl_desc:
 		"在 Kobo 的推送腳本填入這個位址與上方密鑰（同一個 WiFi 才連得到）。",
 	syncurl_none: "（找不到區網 IP，請確認 Mac 已連上 WiFi）",
+	set_genpkg_name: "產生 Kobo 安裝包",
+	set_genpkg_desc:
+		"把上面的位址與密鑰直接打包成 KoboRoot.tgz。Kobo 上要先裝好 NickelMenu。把檔案丟進 Kobo 的 .kobo/ 資料夾、安全退出即可自動安裝，不用編輯任何東西。之後 IP 變了，重新產生一次就好。",
+	btn_genpkg: "產生安裝包",
+	pkg_save_title: "儲存 Kobo 安裝包",
+	notice_pkg_need_receiver: "PaperFolio：請先在上面開啟無線接收（密鑰會自動產生）。",
+	notice_pkg_no_lan: "PaperFolio：找不到區網 IP，請確認 Mac 已連上 WiFi。",
+	notice_pkg_saved: "PaperFolio：安裝包已存到 {path}",
+	notice_pkg_failed: "PaperFolio：安裝包儲存失敗。\n{err}",
 
 	set_language_name: "語言",
 	set_language_desc: "介面與產出筆記的語言。",

@@ -21,9 +21,26 @@ import { readBookmarks } from "./parser";
 import { runSync, summarize, SyncResult, IndexState } from "./sync";
 import { ChapterCache } from "./epub";
 import { Receiver } from "./receiver";
+import { buildKoboRootTgz } from "./kobopkg";
 import { t, setLang, LangSetting } from "./i18n";
 import { mergeBooks } from "./merge";
 import type { Book } from "./types";
+
+// electron 沒有 @types 依賴,只宣告用得到的一小塊介面;esbuild 已把 electron 標記為
+// external,執行期由 Obsidian(Electron)本身的 nodeIntegration 提供 require。
+declare function require(id: string): any;
+interface ElectronRemote {
+	remote?: {
+		dialog: {
+			showSaveDialog: (opts: {
+				title?: string;
+				defaultPath?: string;
+				filters?: { name: string; extensions: string[] }[];
+			}) => Promise<{ canceled: boolean; filePath?: string }>;
+		};
+	};
+	shell?: { showItemInFolder: (path: string) => void };
+}
 
 // 找出本機非內部的 IPv4 位址(給 Kobo 填的 LAN 同步位址)
 function lanAddresses(): string[] {
@@ -243,6 +260,63 @@ export default class PaperFolioPlugin extends Plugin {
 		return lanAddresses().map(
 			(ip) => `http://${ip}:${this.settings.receiverPort}/sync`
 		);
+	}
+
+	// 產生 Kobo 端一鍵安裝包(KoboRoot.tgz):把當下的 LAN IP 與密鑰直接嵌進腳本,
+	// 使用者只要丟進 Kobo 的 .kobo/ 資料夾、安全退出即可自動安裝,不用手填任何東西。
+	async generateInstallPackage(): Promise<void> {
+		if (!this.settings.receiverEnabled || !this.settings.receiverToken) {
+			new Notice(t("notice_pkg_need_receiver"), 8000);
+			return;
+		}
+		const ips = lanAddresses();
+		if (ips.length === 0) {
+			new Notice(t("notice_pkg_no_lan"), 8000);
+			return;
+		}
+		const bytes = buildKoboRootTgz({
+			host: ips[0],
+			port: this.settings.receiverPort,
+			token: this.settings.receiverToken,
+		});
+
+		const defaultPath = path.join(os.homedir(), "Downloads", "KoboRoot.tgz");
+		let targetPath: string | null = null;
+		let electronMod: ElectronRemote | null = null;
+		try {
+			electronMod = require("electron") as ElectronRemote;
+		} catch (e) {
+			console.error("PaperFolio: electron module unavailable", e);
+		}
+		try {
+			const dialogApi = electronMod?.remote?.dialog;
+			if (dialogApi) {
+				const result = await dialogApi.showSaveDialog({
+					title: t("pkg_save_title"),
+					defaultPath,
+					filters: [{ name: "KoboRoot.tgz", extensions: ["tgz"] }],
+				});
+				if (result.canceled || !result.filePath) return;
+				targetPath = result.filePath;
+			}
+		} catch (e) {
+			console.error("PaperFolio: save dialog unavailable", e);
+		}
+		if (!targetPath) targetPath = defaultPath;
+
+		try {
+			fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+			fs.writeFileSync(targetPath, bytes);
+			new Notice(t("notice_pkg_saved", { path: targetPath }), 10000);
+			try {
+				electronMod?.shell?.showItemInFolder(targetPath);
+			} catch {
+				/* 開檔案總管失敗不影響主流程 */
+			}
+		} catch (e) {
+			const msg = e instanceof Error ? e.message : String(e);
+			new Notice(t("notice_pkg_failed", { err: msg }), 10000);
+		}
 	}
 
 	private async loadAll(): Promise<void> {
@@ -505,6 +579,16 @@ class PaperFolioSettingTab extends PluginSettingTab {
 			} else {
 				for (const u of urls) box.createEl("div", { text: u });
 			}
+
+			new Setting(containerEl)
+				.setName(t("set_genpkg_name"))
+				.setDesc(t("set_genpkg_desc"))
+				.addButton((b) =>
+					b
+						.setButtonText(t("btn_genpkg"))
+						.setCta()
+						.onClick(() => void this.plugin.generateInstallPackage())
+				);
 		}
 	}
 }
