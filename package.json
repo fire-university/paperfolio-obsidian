@@ -13,7 +13,7 @@
 		"highlights",
 		"ereader"
 	],
-	"author": "Doug (fire-university)",
+	"author": "Doug (FIRE University)",
 	"license": "MIT",
 	"devDependencies": {
 		"@types/node": "^20.11.0",
