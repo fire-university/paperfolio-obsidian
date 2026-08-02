@@ -435,6 +435,18 @@ class PaperFolioSettingTab extends PluginSettingTab {
 				})
 			);
 
+		new Setting(containerEl).setName(t("heading_index")).setHeading();
+
+		new Setting(containerEl)
+			.setName(t("set_index_name"))
+			.setDesc(t("set_index_desc"))
+			.addToggle((tg) =>
+				tg.setValue(s.createIndexNote).onChange((v) => {
+					s.createIndexNote = v;
+					save();
+				})
+			);
+
 		new Setting(containerEl).setName(t("heading_format")).setHeading();
 
 		new Setting(containerEl)

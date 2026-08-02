@@ -18,6 +18,8 @@ export interface PaperFolioSettings {
 	outputFolder: string;
 	// 門檻:一本書畫線＋(折頁若含)合計低於此數就不匯入。
 	minAnnotations: number;
+	// 產生索引筆記;已有自己書籍庫的使用者可關掉,避免多一份帶 tags/properties 的檔案。
+	createIndexNote: boolean;
 
 	// --- 排版 ---
 	highlightStyle: HighlightStyle;
@@ -49,6 +51,7 @@ export const DEFAULT_SETTINGS: PaperFolioSettings = {
 	koboDesktopDbPath: "",
 	outputFolder: "PaperFolio",
 	minAnnotations: 3,
+	createIndexNote: true,
 	highlightStyle: "callout",
 	groupByChapter: true,
 	showDate: true,

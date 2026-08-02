@@ -74,7 +74,9 @@ export async function runSync(
 		filesWritten: 0,
 		skippedBooks: 0,
 	};
-	await seedIndexState(app, settings, indexState);
+	if (settings.createIndexNote) {
+		await seedIndexState(app, settings, indexState);
+	}
 
 	for (const book of books) {
 		const total = book.bookmarks.filter(
@@ -101,6 +103,8 @@ export async function runSync(
 			stats.dogears,
 		];
 	}
+
+	if (!settings.createIndexNote) return result;
 
 	// 索引以累積狀態產生;先清掉輸出資料夾已不存在的書，避免列出孤兒
 	for (const fname of Object.keys(indexState)) {

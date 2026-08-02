@@ -77,6 +77,10 @@ const EN: Dict = {
 	set_threshold_name: "Import threshold",
 	set_threshold_desc:
 		"Books with fewer highlights than this (including dogears, if enabled) are skipped, to filter out noise.",
+	heading_index: "Index note",
+	set_index_name: "Create index note",
+	set_index_desc:
+		'Writes one extra note ("00_Kobo Highlights Index") listing every imported book. Turn this off if you already keep your own book library. Your book notes are not affected. An index note that already exists stays where it is — delete it yourself.',
 
 	// 設定 — 排版
 	heading_format: "Formatting",
@@ -191,6 +195,10 @@ const ZH: Dict = {
 	set_threshold_name: "匯入門檻",
 	set_threshold_desc:
 		"一本書的畫線數（含折頁若開啟）低於此數就不匯入，過濾零星雜訊。",
+	heading_index: "索引筆記",
+	set_index_name: "產生索引筆記",
+	set_index_desc:
+		"額外產生一份「00_Kobo 畫線索引」，列出所有匯入的書。如果你已經有自己的書籍庫，可以關掉。各本書的畫線筆記不受影響。已經產生的索引筆記不會被刪掉，請自行處理。",
 
 	heading_format: "排版",
 	set_style_name: "畫線呈現風格",
