@@ -20,7 +20,7 @@ import { StateData, State } from "./state";
 import { readBookmarks, readWordList } from "./parser";
 import { runSync, summarize, SyncResult, IndexState } from "./sync";
 import { writeWordList } from "./writer";
-import { wordListPath } from "./wordlist";
+import { wordListPath, WORDS_SYNCED_EVENT } from "./wordlist";
 import { ChapterCache } from "./epub";
 import { Receiver } from "./receiver";
 import { buildKoboRootTgz } from "./kobopkg";
@@ -177,6 +177,13 @@ export default class PaperFolioPlugin extends Plugin {
 					const w = await writeWordList(this.app, words, this.settings);
 					result.words = w.added;
 					if (w.total === 0) new Notice(t("notice_wordlist_empty"), 8000);
+					if (w.added > 0) {
+						this.app.workspace.trigger(
+							WORDS_SYNCED_EVENT as "quick-preview",
+							wordListPath(this.settings) as never,
+							w.added as never
+						);
+					}
 				} catch (err) {
 					console.error("PaperFolio: writing the word list failed", err);
 				}

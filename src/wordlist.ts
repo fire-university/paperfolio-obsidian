@@ -12,6 +12,15 @@ import type { KoboWord } from "./types";
 import type { PaperFolioSettings } from "./settings";
 
 export const WORDLIST_FILENAME = ".kobo-words.json";
+/**
+ * 交接檔有新字時,在 workspace 上發這個事件。
+ *
+ * 生詞本外掛(WordFolio)聽到就能直接匯入,使用者不必在 Kobo 按完同步之後
+ * 再回 Obsidian 按一次匯入——**Kobo 機身上那顆按鈕因此一路到底**。
+ * Obsidian 沒有官方的跨外掛事件匯流排,但 workspace 本身就是一個 Events,
+ * 兩邊約好同一個字串就能通;沒人在聽也不會有任何影響。
+ */
+export const WORDS_SYNCED_EVENT = "paperfolio:words-synced";
 export const WORDLIST_VERSION = 1;
 
 export interface WordListFile {
