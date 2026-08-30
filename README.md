@@ -54,6 +54,33 @@ While Obsidian is open, the plugin can listen on a port so a Kobo on the same Wi
 
 Chapter names are cached from earlier USB syncs, so wireless syncs keep full chapter grouping even though the EPUB files are not available.
 
+## Words you looked up (optional, off by default)
+
+Your Kobo can save every word you look up with its built-in dictionary. Turn it
+on at **More > Beta Features > My Words** on the eReader — without it the list
+stays empty. Then switch on **Vocabulary > Sync looked-up words** here, and each
+sync writes those words to `<output folder>/.kobo-words.json`, ready for a
+vocabulary plugin (such as [WordFolio](https://github.com/fire-university/wordfolio-obsidian))
+to import as flashcards.
+
+### Look the word up first, then highlight the sentence
+
+**On a Kobo you cannot look a word up once the text is selected** — the
+selection takes over the long press. So while reading: long-press the word,
+read the definition, close it, and only then highlight the sentence.
+
+That order matters because **Kobo saves the word but not the sentence it came
+from**. PaperFolio recovers the sentence in two ways, in this order:
+
+1. **From your highlights.** Highlight text lives in the Kobo database, so this
+   works even for DRM-protected store books.
+2. **From the book file**, when the Kobo is plugged in (or the book is in your
+   Kobo desktop library) *and* the book is DRM-free. Store books are usually
+   encrypted; the plugin never tries to decrypt anything.
+
+If neither is available the word still syncs — the card simply has no example
+sentence, and a later sync can fill it in.
+
 ## Settings
 
 | Setting | What it does |
@@ -66,6 +93,7 @@ Chapter names are cached from earlier USB syncs, so wireless syncs keep full cha
 | Highlight style | Callout / Blockquote / Bullet list |
 | Group by chapter, show date, color as tag, filename format | Formatting |
 | Import dogears, dogear label | Dogears (off by default) |
+| Sync looked-up words, word list file | Vocabulary (off by default) |
 | Wireless receiver | Enable, port, key, sync address |
 
 ![The plugin settings tab](docs/images/settings-en.jpg)
