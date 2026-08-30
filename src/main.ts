@@ -21,7 +21,7 @@ import { readBookmarks, readWordList } from "./parser";
 import { runSync, summarize, SyncResult, IndexState } from "./sync";
 import { writeWordList } from "./writer";
 import { wordListPath, WORDS_SYNCED_EVENT } from "./wordlist";
-import { findSentence } from "./wordctx";
+import { findSentence, sentenceFromHighlights, type HighlightRef } from "./wordctx";
 import { ChapterCache } from "./epub";
 import { Receiver } from "./receiver";
 import { buildKoboRootTgz } from "./kobopkg";
@@ -172,13 +172,32 @@ export default class PaperFolioPlugin extends Plugin {
 				this.chapterCache,
 				this.indexState
 			);
-			// 有本機書檔時(USB 掛載的 Kobo / Kobo Desktop 資料目錄),回頭到書裡
-			// 把「查這個字的那一句」撈出來。Kobo 自己不存原句;純無線同步沒有書檔,
-			// 那時就留白,等下次插線再補。加密的商店書撈不到,也只是留白。
-			if (wantWords && words.length && roots.length) {
+			// 「查這個字的那一句」——Kobo 自己不存,分兩條路找回來:
+			//
+			//   1. **畫線**(優先)。畫線文字存在 Bookmark.Text,**不受 DRM 影響**,
+			//      而且是他自己選的那一段。剛剛已經解析過了,直接拿來用,不必再查一次。
+			//   2. **書檔**。只有插著 USB 或有 Kobo Desktop 書檔時才有;加密的商店書
+			//      解不開就留白。
+			//
+			// 兩條都沒有就維持沒有原句,下次同步再補(交接檔的原句只增不減)。
+			if (wantWords && words.length) {
+				const highlights: HighlightRef[] = [];
+				for (const book of books) {
+					for (const b of book.bookmarks) {
+						if (b.type === "dogear" || !b.text) continue;
+						highlights.push({
+							volumeId: b.volumeId,
+							text: b.text,
+							date: b.dateCreated,
+						});
+					}
+				}
 				for (const w of words) {
 					if (w.sentence) continue;
-					w.sentence = findSentence(w.volumeId, w.text, roots) ?? undefined;
+					w.sentence =
+						sentenceFromHighlights(w.text, w.volumeId, w.date, highlights) ??
+						(roots.length ? findSentence(w.volumeId, w.text, roots) : null) ??
+						undefined;
 				}
 			}
 

@@ -13,6 +13,11 @@
 //
 // 只有書檔在本機時才做(USB 掛載的 Kobo、或 Kobo Desktop 的資料目錄);
 // 純無線同步沒有書檔,那時就沒有原句。
+//
+// **畫線是更好的來源,而且不受 DRM 影響。** 畫線的文字是 Kobo 自己存進
+// `Bookmark.Text` 的,加密的商店書照樣讀得到;而且那是使用者自己選的那一段,
+// 比「這個字在書裡第一次出現的地方」更接近他當下看到的句子。所以順序是
+// 先找畫線,再退回書檔。
 
 import * as fs from "fs";
 import { unzipSync } from "fflate";
@@ -135,6 +140,62 @@ function bookText(epubPath: string): string[] {
 	}
 	textCache.set(epubPath, parts);
 	return parts;
+}
+
+/** 配對用的畫線:哪一本、畫了什麼、什麼時候畫的。 */
+export interface HighlightRef {
+	volumeId: string;
+	text: string;
+	date: string;
+}
+
+/** 把畫線文字清乾淨:Kobo 常在尾巴留一串 tab,開頭偶爾多一個句點。 */
+function tidy(text: string): string {
+	return text.replace(/\s+/g, " ").replace(/^[\s.,;:]+/, "").trim();
+}
+
+/** 兩個時間差幾毫秒;有一邊解析不出來就當作無限遠(仍可比較,只是排最後)。 */
+function gap(a: string, b: string): number {
+	const ta = Date.parse(a);
+	const tb = Date.parse(b);
+	return Number.isFinite(ta) && Number.isFinite(tb)
+		? Math.abs(ta - tb)
+		: Number.MAX_SAFE_INTEGER;
+}
+
+/**
+ * 從同一本書的畫線裡找包含這個字的那一句。
+ *
+ * 一個字可能出現在好幾條畫線裡,**取畫線時間離查詢時間最近的那條**——他是
+ * 讀到那裡才查的,時間就是最可靠的線索。
+ *
+ * 畫線常常是一整段,所以先切出含那個字的那一句;切不出來而整條又夠短,
+ * 就整條當原句(那本來就是他自己選的範圍)。
+ */
+export function sentenceFromHighlights(
+	word: string,
+	volumeId: string,
+	when: string,
+	highlights: HighlightRef[]
+): string | null {
+	const candidates = highlights
+		.filter((h) => h.volumeId === volumeId && h.text)
+		.map((h) => ({ h, text: tidy(h.text) }))
+		.filter(({ text }) => sentenceAround(text, word) !== null || containsWord(text, word))
+		.sort((a, b) => gap(a.h.date, when) - gap(b.h.date, when));
+
+	for (const { text } of candidates) {
+		const s = sentenceAround(text, word);
+		if (s) return s;
+		if (text.length <= MAX_SENTENCE) return text; // 整條就是他選的範圍
+	}
+	return null;
+}
+
+/** 這段文字裡有沒有這個字(整字比對,art 不算在 start 裡)。 */
+export function containsWord(text: string, word: string): boolean {
+	const esc = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	return new RegExp(`(^|[^A-Za-z'’-])${esc}([^A-Za-z'’-]|$)`, "i").test(text);
 }
 
 /**

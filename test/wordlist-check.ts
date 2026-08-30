@@ -3,7 +3,7 @@
 import * as fs from "fs";
 import { readWordList } from "../src/parser";
 import { mergeWords, parseWordListFile } from "../src/wordlist";
-import { sentenceAround, stripXhtml } from "../src/wordctx";
+import { sentenceAround, stripXhtml, sentenceFromHighlights, type HighlightRef } from "../src/wordctx";
 import type { KoboWord } from "../src/types";
 
 let failed = 0;
@@ -90,6 +90,58 @@ async function main() {
 	);
 	check("書裡沒有的字回 null", sentenceAround(text, "obituary") === null);
 	check("空字串不會爆", sentenceAround("", "marble") === null);
+
+	console.log("畫線 → 原句");
+	// 樣本照道哥 The Art of Spending Money 裡真的畫過的線抄下來(含尾巴的 tab
+	// 與開頭多出來的句點——Kobo 存進 Bookmark.Text 就是長這樣)。
+	const hls: HighlightRef[] = [
+		{
+			volumeId: "book-a",
+			date: "2026-01-17T15:31:40Z",
+			text:
+				"There’s a saying: Never make fun of someone for mispronouncing a word, " +
+				"because it means they learned it from reading. As a corollary: Never make " +
+				"fun of how someone spends their money, because they learned it from living.",
+		},
+		{
+			volumeId: "book-a",
+			date: "2026-01-16T02:29:33Z",
+			text: ". Benjamin Franklin put this so well when he wrote: “Many a man thinks he is buying pleasure.” \t\t\t",
+		},
+		{ volumeId: "book-b", date: "2026-01-17T15:31:41Z", text: "A pleasure in another book." },
+	];
+	const at = "2026-01-17T15:35:00Z";
+
+	const cor = sentenceFromHighlights("corollary", "book-a", at, hls);
+	check(
+		"從一整段畫線裡切出含那個字的那一句",
+		cor === "As a corollary: Never make fun of how someone spends their money, because they learned it from living.",
+		String(cor)
+	);
+	check(
+		"開頭多出來的句點與尾巴的 tab 會清掉",
+		(sentenceFromHighlights("Franklin", "book-a", at, hls) ?? "").startsWith("Benjamin Franklin"),
+		String(sentenceFromHighlights("Franklin", "book-a", at, hls))
+	);
+	check(
+		"只找同一本書的畫線",
+		sentenceFromHighlights("pleasure", "book-b", at, hls) === "A pleasure in another book.",
+		String(sentenceFromHighlights("pleasure", "book-b", at, hls))
+	);
+	check("沒畫過線的字回 null", sentenceFromHighlights("marble", "book-a", at, hls) === null);
+	check("沒有畫線時不會爆", sentenceFromHighlights("corollary", "book-a", at, []) === null);
+
+	// 同一個字出現在兩條畫線裡:取畫線時間離查詢時間最近的那一條。
+	const twice: HighlightRef[] = [
+		{ volumeId: "b", date: "2026-01-01T00:00:00Z", text: "An early mention of the word tenacity." },
+		{ volumeId: "b", date: "2026-08-30T04:00:00Z", text: "A later mention of the word tenacity." },
+	];
+	check(
+		"多條命中時取時間最近的",
+		sentenceFromHighlights("tenacity", "b", "2026-08-30T04:07:00Z", twice) ===
+			"A later mention of the word tenacity.",
+		String(sentenceFromHighlights("tenacity", "b", "2026-08-30T04:07:00Z", twice))
+	);
 
 	console.log("原句只增不減");
 	const withS: KoboWord = { ...w("marble", "2026-08-30T04:07:57Z"), sentence: "a sentence" };
