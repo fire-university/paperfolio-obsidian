@@ -18,12 +18,15 @@ export interface Bookmark {
 }
 
 // Kobo 內建字典查過的字(機身上的 My Words 開著才會存進 WordList)。
-// 注意:WordList 只有單字與來源書，沒有原句——由此產生的生詞卡不會有上下文。
 export interface KoboWord {
 	text: string; // 查詢時長按的表面形(未還原原形，交給下游處理)
 	book: string; // 來源書名,由 VolumeId 對 content.Title 得來
+	volumeId: string; // 來源書的 ContentID,拿來找書檔補原句
 	dict: string; // DictSuffix，例如 -en-zh-TW
 	date: string; // DateCreated
+	// 書裡包含這個字的那一句。**WordList 本身沒有原句**,這是插著 USB(或有
+	// Kobo Desktop 的書檔)時另外從書裡撈的;加密的商店書撈不到,就沒有這欄。
+	sentence?: string;
 }
 
 export interface Book {

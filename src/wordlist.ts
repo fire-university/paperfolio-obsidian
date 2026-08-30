@@ -57,7 +57,11 @@ export function mergeWords(
 		if (!key) continue;
 		const prev = byWord.get(key);
 		if (!prev || (w.date && (!prev.date || w.date < prev.date))) {
-			byWord.set(key, w);
+			// 原句是後來才補得到的(無線同步沒有書檔,插 USB 才撈得到),
+			// 所以換掉某一筆時要把已經找到的原句留著,不要倒退回沒有。
+			byWord.set(key, { ...w, sentence: w.sentence ?? prev?.sentence });
+		} else if (!prev.sentence && w.sentence) {
+			prev.sentence = w.sentence;
 		}
 	}
 	return [...byWord.values()].sort(byDate);

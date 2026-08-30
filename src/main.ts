@@ -21,6 +21,7 @@ import { readBookmarks, readWordList } from "./parser";
 import { runSync, summarize, SyncResult, IndexState } from "./sync";
 import { writeWordList } from "./writer";
 import { wordListPath, WORDS_SYNCED_EVENT } from "./wordlist";
+import { findSentence } from "./wordctx";
 import { ChapterCache } from "./epub";
 import { Receiver } from "./receiver";
 import { buildKoboRootTgz } from "./kobopkg";
@@ -171,6 +172,16 @@ export default class PaperFolioPlugin extends Plugin {
 				this.chapterCache,
 				this.indexState
 			);
+			// 有本機書檔時(USB 掛載的 Kobo / Kobo Desktop 資料目錄),回頭到書裡
+			// 把「查這個字的那一句」撈出來。Kobo 自己不存原句;純無線同步沒有書檔,
+			// 那時就留白,等下次插線再補。加密的商店書撈不到,也只是留白。
+			if (wantWords && words.length && roots.length) {
+				for (const w of words) {
+					if (w.sentence) continue;
+					w.sentence = findSentence(w.volumeId, w.text, roots) ?? undefined;
+				}
+			}
+
 			// 生詞交接檔:寫在畫線同步之後，失敗不該讓整次同步白跑。
 			if (wantWords) {
 				try {

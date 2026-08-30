@@ -118,9 +118,10 @@ export async function readWordList(dbBytes: Uint8Array): Promise<KoboWord[]> {
 				 WHERE w.Text IS NOT NULL AND TRIM(w.Text) <> ''`
 			)
 		);
-		const words = rows.map((r) => ({
+		const words: KoboWord[] = rows.map((r) => ({
 			text: str(r.Text).trim(),
 			book: str(r.BookTitle).trim() || fallbackTitle(str(r.VolumeId)),
+			volumeId: str(r.VolumeId),
 			dict: str(r.DictSuffix),
 			date: str(r.DateCreated),
 		}));
