@@ -17,14 +17,16 @@ import {
 	FilenameFormat,
 } from "./settings";
 import { StateData, State } from "./state";
-import { readBookmarks } from "./parser";
+import { readBookmarks, readWordList } from "./parser";
 import { runSync, summarize, SyncResult, IndexState } from "./sync";
+import { writeWordList } from "./writer";
+import { wordListPath } from "./wordlist";
 import { ChapterCache } from "./epub";
 import { Receiver } from "./receiver";
 import { buildKoboRootTgz } from "./kobopkg";
 import { t, setLang, LangSetting } from "./i18n";
 import { mergeBooks } from "./merge";
-import type { Book } from "./types";
+import type { Book, KoboWord } from "./types";
 
 // electron 沒有 @types 依賴,只宣告用得到的一小塊介面;esbuild 已把 electron 標記為
 // external,執行期由 Obsidian(Electron)本身的 nodeIntegration 提供 require。
@@ -128,16 +130,20 @@ export default class PaperFolioPlugin extends Plugin {
 		try {
 			const lists: Book[][] = [];
 			const roots: string[] = [];
+			const words: KoboWord[] = [];
+			// 單字表跟畫線吃同一份位元組;設定關著就完全不去碰它。
+			const wantWords = this.settings.syncWordList;
 
 			// 來源一:裝置(無線推來的位元組，或掛載中的 KoboReader.sqlite)
 			if (pushedBytes) {
 				lists.push(await readBookmarks(pushedBytes));
+				if (wantWords) words.push(...(await readWordList(pushedBytes)));
 			} else {
 				const dev = this.dbPath();
 				if (fs.existsSync(dev)) {
-					lists.push(
-						await readBookmarks(new Uint8Array(fs.readFileSync(dev)))
-					);
+					const bytes = new Uint8Array(fs.readFileSync(dev));
+					lists.push(await readBookmarks(bytes));
+					if (wantWords) words.push(...(await readWordList(bytes)));
 					const r = this.volumeRoot();
 					if (r) roots.push(r);
 				}
@@ -146,9 +152,9 @@ export default class PaperFolioPlugin extends Plugin {
 			// 來源二:Kobo Desktop 本機資料庫(電腦上讀書畫的線)
 			const desk = this.desktopDbPath();
 			if (desk && fs.existsSync(desk)) {
-				lists.push(
-					await readBookmarks(new Uint8Array(fs.readFileSync(desk)))
-				);
+				const bytes = new Uint8Array(fs.readFileSync(desk));
+				lists.push(await readBookmarks(bytes));
+				if (wantWords) words.push(...(await readWordList(bytes)));
 				roots.push(path.dirname(desk)); // 書檔在同層 kepub/
 			}
 
@@ -165,6 +171,17 @@ export default class PaperFolioPlugin extends Plugin {
 				this.chapterCache,
 				this.indexState
 			);
+			// 生詞交接檔:寫在畫線同步之後，失敗不該讓整次同步白跑。
+			if (wantWords) {
+				try {
+					const w = await writeWordList(this.app, words, this.settings);
+					result.words = w.added;
+					if (w.total === 0) new Notice(t("notice_wordlist_empty"), 8000);
+				} catch (err) {
+					console.error("PaperFolio: writing the word list failed", err);
+				}
+			}
+
 			this.syncState = state.export();
 			await this.saveAll();
 			return result;
@@ -525,6 +542,38 @@ class PaperFolioSettingTab extends PluginSettingTab {
 					save();
 				})
 			);
+
+		// --- 單字(Kobo 內建字典查過的字) ---
+		new Setting(containerEl).setName(t("heading_words")).setHeading();
+
+		{
+			const shown = wordListPath(s);
+			new Setting(containerEl)
+				.setName(t("set_wordlist_name"))
+				.setDesc(t("set_wordlist_desc", { path: shown }))
+				.addToggle((tg) =>
+					tg.setValue(s.syncWordList).onChange((v) => {
+						s.syncWordList = v;
+						save();
+						this.display(); // 重繪讓路徑欄跟著出現/消失
+					})
+				);
+
+			if (s.syncWordList) {
+				new Setting(containerEl)
+					.setName(t("set_wordlist_path_name"))
+					.setDesc(t("set_wordlist_path_desc", { path: shown }))
+					.addText((text) =>
+						text
+							.setPlaceholder(shown)
+							.setValue(s.wordListPath)
+							.onChange((v) => {
+								s.wordListPath = v.trim();
+								save();
+							})
+					);
+			}
+		}
 
 		// --- 無線接收(LAN) ---
 		new Setting(containerEl).setName(t("heading_wireless")).setHeading();

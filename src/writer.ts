@@ -3,9 +3,16 @@
 // 只重寫 <!-- KOBO:START/END --> 之間，區塊外(含手寫總結)永不動。
 
 import { App, normalizePath } from "obsidian";
-import type { Book } from "./types";
+import type { Book, KoboWord } from "./types";
 import type { PaperFolioSettings } from "./settings";
 import type { State } from "./state";
+import {
+	buildWordListContent,
+	mergeWords,
+	parseWordListFile,
+	wordListPath,
+	WordListResult,
+} from "./wordlist";
 import {
 	bookFilename,
 	buildKoboBlock,
@@ -71,6 +78,29 @@ export async function writeBook(
 	await app.vault.adapter.write(path, content);
 	for (const b of book.bookmarks) state.mark(b);
 	return { filename, written: true, new: newCount, highlights, dogears };
+}
+
+// 生詞交接檔:合併既有內容後寫出。沒有新字就不重寫檔(避免每次同步都改檔案時間)。
+export async function writeWordList(
+	app: App,
+	incoming: KoboWord[],
+	settings: PaperFolioSettings
+): Promise<WordListResult> {
+	const p = normalizePath(wordListPath(settings));
+	const existing = (await app.vault.adapter.exists(p))
+		? parseWordListFile(await app.vault.adapter.read(p))
+		: [];
+	const merged = mergeWords(existing, incoming);
+	const added = Math.max(merged.length - existing.length, 0);
+
+	if (added === 0 && existing.length > 0) {
+		return { total: merged.length, added: 0 };
+	}
+
+	const folder = p.split("/").slice(0, -1).join("/");
+	if (folder) await ensureFolder(app, folder);
+	await app.vault.adapter.write(p, buildWordListContent(merged, new Date()));
+	return { total: merged.length, added };
 }
 
 export async function writeIndex(

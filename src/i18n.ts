@@ -106,6 +106,16 @@ const EN: Dict = {
 	set_dogear_label_name: "Dogear label",
 
 	// 設定 — 無線
+	heading_words: "Vocabulary",
+	set_wordlist_name: "Sync looked-up words",
+	set_wordlist_desc:
+		"Words you look up with the Kobo\'s built-in dictionary are written to \"{path}\" so a vocabulary plugin (such as WordFolio) can import them. Your highlight notes are never touched, and turning this off deletes nothing you have already imported. Requires My Words on the eReader: More > Beta Features > My Words.",
+	set_wordlist_path_name: "Word list file",
+	set_wordlist_path_desc:
+		"Where to write the word list, relative to your vault. Leave empty for \"{path}\".",
+	notice_wordlist_empty:
+		"PaperFolio: no looked-up words found. Turn on My Words on your Kobo (More > Beta Features > My Words), then look a word up while reading.",
+
 	heading_wireless: "Wireless receiver (LAN)",
 	set_receiver_name: "Enable wireless receiver",
 	set_receiver_desc:
@@ -162,6 +172,7 @@ const EN: Dict = {
 	// 摘要
 	summary: "Imported {h} highlights, {d} dogears ({books} books{extra})",
 	summary_extra: ", skipped {n} sparse books",
+	summary_words: " · {n} new words",
 
 	err_sync_in_progress: "Sync already in progress, please wait.",
 };
@@ -220,6 +231,15 @@ const ZH: Dict = {
 		"折頁只記位置（章節＋進度%），沒有文字。多數人只要畫線，預設關閉。",
 	set_dogear_label_name: "折頁標籤文字",
 
+	heading_words: "單字",
+	set_wordlist_name: "同步查過的單字",
+	set_wordlist_desc:
+		"把你用 Kobo 內建字典查過的字寫進「{path}」，給生詞本外掛（例如 WordFolio）匯入。不會動到你的畫線筆記；關掉也不會刪掉已經匯入的生詞卡。要先在閱讀器上打開 My Words：更多 > Beta 功能 > My Words。",
+	set_wordlist_path_name: "單字檔位置",
+	set_wordlist_path_desc: "單字檔寫到哪裡（vault 相對路徑）。留空 = 「{path}」。",
+	notice_wordlist_empty:
+		"PaperFolio：沒有查過的單字。先在 Kobo 上打開 My Words（更多 > Beta 功能 > My Words），讀書時長按查字才會記錄。",
+
 	heading_wireless: "無線接收（區網）",
 	set_receiver_name: "啟用無線接收",
 	set_receiver_desc:
@@ -268,6 +288,7 @@ const ZH: Dict = {
 
 	summary: "已匯入 {h} 條畫線、{d} 個折頁（{books} 本書{extra}）",
 	summary_extra: "，略過 {n} 本零星書",
+	summary_words: "，另有 {n} 個新單字",
 
 	err_sync_in_progress: "同步進行中，請稍候。",
 };

@@ -30,6 +30,12 @@ export interface PaperFolioSettings {
 	dogearLabel: string;
 	filenameFormat: FilenameFormat;
 
+	// --- 單字(Kobo 內建字典查過的字) ---
+	// 把 WordList 寫成交接檔給 WordFolio 匯入生詞本;預設關(多數使用者沒開 My Words)。
+	syncWordList: boolean;
+	// 交接檔路徑(vault 相對);留空 = <輸出資料夾>/.kobo-words.json
+	wordListPath: string;
+
 	// --- 無線接收(LAN) ---
 	receiverEnabled: boolean; // Obsidian 開著時聽一個埠，Kobo 一鍵推 DB
 	receiverPort: number;
@@ -59,6 +65,8 @@ export const DEFAULT_SETTINGS: PaperFolioSettings = {
 	includeDogears: false,
 	dogearLabel: "【折頁】",
 	filenameFormat: "title",
+	syncWordList: false,
+	wordListPath: "",
 	receiverEnabled: false,
 	receiverPort: 8321,
 	receiverToken: "",

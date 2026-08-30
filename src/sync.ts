@@ -21,18 +21,22 @@ export interface SyncResult {
 	newItems: number;
 	filesWritten: number;
 	skippedBooks: number;
+	words?: number; // 這次新增的生詞數(單字同步關著時為 undefined)
 }
 
 export function summarize(r: SyncResult): string {
 	const extra = r.skippedBooks
 		? t("summary_extra", { n: r.skippedBooks })
 		: "";
-	return t("summary", {
-		h: r.highlights,
-		d: r.dogears,
-		books: r.books,
-		extra,
-	});
+	const words = r.words ? t("summary_words", { n: r.words }) : "";
+	return (
+		t("summary", {
+			h: r.highlights,
+			d: r.dogears,
+			books: r.books,
+			extra,
+		}) + words
+	);
 }
 
 // 升級相容:indexState 還是空的時候，從既有的索引檔回填，

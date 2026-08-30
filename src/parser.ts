@@ -8,7 +8,7 @@ import initSqlJs from "sql.js";
 import type { Database, SqlJsStatic, QueryExecResult } from "sql.js";
 // esbuild 以 binary loader 內嵌 sql.js 的 wasm(見 esbuild.config.mjs / wasm.d.ts)。
 import wasmBinary from "sql.js/dist/sql-wasm.wasm";
-import type { Book, Bookmark } from "./types";
+import type { Book, Bookmark, KoboWord } from "./types";
 import { t } from "./i18n";
 
 // kepub 的 StartContainerPath 形如 span#kobo\.14\.1；N=段落序號、M=段落內序號，越大越後面。
@@ -89,6 +89,43 @@ export async function readBookmarks(dbBytes: Uint8Array): Promise<Book[]> {
 	const db = new SQL.Database(dbBytes);
 	try {
 		return readInternal(db);
+	} finally {
+		db.close();
+	}
+}
+
+// 單字表(My Words)。表不存在(舊韌體)或一筆都沒有(功能沒開)都回空陣列，不是錯誤。
+// 跟 readBookmarks 吃同一份位元組,一樣唯讀、一樣不寫回裝置。
+export async function readWordList(dbBytes: Uint8Array): Promise<KoboWord[]> {
+	const SQL = await getSql();
+	const db = new SQL.Database(dbBytes);
+	try {
+		const cols = tableColumns(db, "WordList");
+		if (!cols.has("Text")) return [];
+		const volSel = cols.has("VolumeId") ? "w.VolumeId" : "'' AS VolumeId";
+		const dictSel = cols.has("DictSuffix")
+			? "w.DictSuffix"
+			: "'' AS DictSuffix";
+		const dateSel = cols.has("DateCreated")
+			? "w.DateCreated"
+			: "'' AS DateCreated";
+		const rows = rowsOf(
+			db.exec(
+				`SELECT w.Text, ${volSel}, ${dictSel}, ${dateSel},
+				        c.Title AS BookTitle
+				 FROM WordList w
+				 LEFT JOIN content c ON c.ContentID = w.VolumeId
+				 WHERE w.Text IS NOT NULL AND TRIM(w.Text) <> ''`
+			)
+		);
+		const words = rows.map((r) => ({
+			text: str(r.Text).trim(),
+			book: str(r.BookTitle).trim() || fallbackTitle(str(r.VolumeId)),
+			dict: str(r.DictSuffix),
+			date: str(r.DateCreated),
+		}));
+		words.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+		return words;
 	} finally {
 		db.close();
 	}
