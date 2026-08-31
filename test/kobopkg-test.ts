@@ -23,17 +23,25 @@ function main() {
 	const nm = path.join(tmp, "mnt/onboard/.adds/nm/paperfolio");
 	const sh = path.join(tmp, "mnt/onboard/.adds/folio/send-highlights.sh");
 
+	const pre = path.join(tmp, "mnt/onboard/.adds/folio/preflight.sh");
 	if (!fs.existsSync(nm)) throw new Error("nm 設定沒解出來");
 	if (!fs.existsSync(sh)) throw new Error("send-highlights.sh 沒解出來");
+	if (!fs.existsSync(pre)) throw new Error("preflight.sh 沒解出來");
 
 	const shContent = fs.readFileSync(sh, "utf-8");
-	if (!shContent.includes('HOST="172.26.188.48"')) throw new Error("HOST 沒填進去");
+	// 燒進去的位址是**退路**:設定檔(插 USB 時外掛會更新)優先。
+	if (!shContent.includes('HOST_BAKED="172.26.188.48"')) throw new Error("HOST 沒填進去");
 	if (!shContent.includes('PORT="8322"')) throw new Error("PORT 沒填進去");
 	if (!shContent.includes('TOKEN="test-token-abc"')) throw new Error("TOKEN 沒填進去");
-	if (!shContent.includes("nc -w 20")) throw new Error("缺 nc 呼叫");
+	if (!shContent.includes("nc -w")) throw new Error("缺 nc 呼叫");
+	if (!shContent.includes("/mnt/onboard/.adds/folio/config")) {
+		throw new Error("沒有讀設定檔,IP 換了就會連不上");
+	}
 
 	const nmContent = fs.readFileSync(nm, "utf-8");
 	if (!nmContent.includes("send-highlights.sh")) throw new Error("nm 設定沒指到腳本");
+	if (!nmContent.includes("preflight.sh")) throw new Error("nm 設定沒接上連線檢查");
+	if (!nmContent.includes("chain_failure")) throw new Error("連不上時沒有任何提示");
 
 	console.error("[通過] 系統 tar 能正確解開,內容與檔名都對");
 	fs.rmSync(tmp, { recursive: true, force: true });

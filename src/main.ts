@@ -25,6 +25,7 @@ import { findSentence, sentenceFromHighlights, type HighlightRef } from "./wordc
 import { ChapterCache } from "./epub";
 import { Receiver } from "./receiver";
 import { buildKoboRootTgz } from "./kobopkg";
+import { updateDeviceConfig } from "./devicecfg";
 import { t, setLang, LangSetting } from "./i18n";
 import { mergeBooks } from "./merge";
 import type { Book, KoboWord } from "./types";
@@ -146,7 +147,18 @@ export default class PaperFolioPlugin extends Plugin {
 					lists.push(await readBookmarks(bytes));
 					if (wantWords) words.push(...(await readWordList(bytes)));
 					const r = this.volumeRoot();
-					if (r) roots.push(r);
+					if (r) {
+						roots.push(r);
+						// 裝置就在眼前:把電腦當下的位址寫回去,無線同步在換過
+						// 網路之後才不會變成「按了沒反應」。
+						if (this.settings.receiverToken) {
+							updateDeviceConfig(r, {
+								hosts: lanAddresses(),
+								port: this.settings.receiverPort,
+								token: this.settings.receiverToken,
+							});
+						}
+					}
 				}
 			}
 

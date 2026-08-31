@@ -17,32 +17,87 @@ export interface KoboPkgOptions {
 	token: string;
 }
 
-// nc 版推送腳本。核心手法:printf 組 HTTP header,cat 接資料庫本體,一起 pipe 進 nc。
-// 先等 wlan0 真的拿到 IP 再送出:NickelMenu 的 :nickel_wifi :autoconnect 觸發連線後
-// 不保證馬上有網路,實測沒等就送會得到「Network is unreachable」。
-function buildSyncScript(opts: KoboPkgOptions): string {
-	return `#!/bin/sh
-# PaperFolio -- 推送 Kobo 畫線資料庫到 Mac(LAN, nc 版, 不需要 curl)。
-# 由 Obsidian 外掛「產生 Kobo 安裝包」自動產生,已內嵌你的同步位址與密鑰。
+// 位址與密鑰放在一個獨立的設定檔,腳本開頭 source 它;插 USB 同步時外掛會把
+// 電腦當下的 IP 寫回那個檔(見 devicecfg.ts)。**這是為了旅行**:IP 一換,燒死在
+// 腳本裡的位址就連不到,而使用者看到的只是「按了沒反應」。
+export const DEVICE_CONFIG_PATH = "/mnt/onboard/.adds/folio/config";
 
-DB="/mnt/onboard/.kobo/KoboReader.sqlite"
-HOST="${opts.host}"
+// 找得到設定檔就用它的位址,否則用產生安裝包當下燒進去的那組;逐一 probe /ping,
+// 第一個回應的就是它。
+function resolveSnippet(opts: KoboPkgOptions): string {
+	return `
+HOST_BAKED="${opts.host}"
 PORT="${opts.port}"
 TOKEN="${opts.token}"
 
-# 等 WiFi 真的連上拿到 IP,最多 15 秒
+# 設定檔由外掛在你插 USB 同步時自動更新(IP 換了不必重產安裝包)。
+# PF_CONFIG 只是給測試換路徑用的,裝置上永遠走預設值。
+CFG="\${PF_CONFIG:-${DEVICE_CONFIG_PATH}}"
+[ -f "$CFG" ] && . "$CFG"
+PORT="\${PORT:-${opts.port}}"
+TOKEN="\${TOKEN:-${opts.token}}"
+
+probe_once() {
+  printf 'GET /ping HTTP/1.1\\r\\nHost: %s\\r\\nConnection: close\\r\\n\\r\\n' "$1" | nc -w 2 "$1" "$PORT" 2>/dev/null | grep -q "PaperFolio receiver OK"
+}
+
+# **nc 的 -w 不管「連不到的主機」**:位址還在路由表上但沒有人回應時(換了網路
+# 之後最常見的就是這種),connect 會卡到系統預設逾時,一等就是一分鐘以上。
+# 所以自己看門:超過秒數就把它砍掉,當成連不上。
+probe() {
+  # **背景工作的 stdout 一定要導掉。** 外層若用命令替換接結果,活著的 nc 會把
+  # 那根管子撐開——subshell 被砍了,命令替換還在等管子關閉,整支腳本照樣卡死。
+  probe_once "$1" >/dev/null 2>&1 &
+  p=$!
+  ( sleep 3; kill -9 $p 2>/dev/null ) >/dev/null 2>&1 &
+  w=$!
+  wait $p 2>/dev/null
+  rc=$?
+  kill $w 2>/dev/null
+  return $rc
+}
+
+# 選中的位址放進 PICKED,不用 echo + $( ) —— 理由同上。
+PICKED=""
+pick_host() {
+  for h in $HOSTS "$HOST_BAKED"; do
+    [ -n "$h" ] || continue
+    if probe "$h"; then PICKED="$h"; return 0; fi
+  done
+  return 1
+}
+`;
+}
+
+// 等 wlan0 真的拿到 IP。NickelMenu 的 :nickel_wifi :autoconnect 觸發連線後不保證
+// 馬上有網路,實測沒等就送會得到「Network is unreachable」。
+function waitWifi(secs: number): string {
+	return `
 i=0
-while [ $i -lt 15 ]; do
+while [ $i -lt ${secs} ]; do
   ip=$(busybox ifconfig 2>/dev/null | grep -A1 '^wlan0' | grep 'inet addr' | sed 's/.*inet addr://; s/ .*//')
   [ -n "$ip" ] && [ "$ip" != "0.0.0.0" ] && break
   sleep 1
   i=$((i+1))
 done
+`;
+}
+
+// nc 版推送腳本。核心手法:printf 組 HTTP header,cat 接資料庫本體,一起 pipe 進 nc。
+function buildSyncScript(opts: KoboPkgOptions): string {
+	return `#!/bin/sh
+# PaperFolio -- 推送 Kobo 畫線資料庫到電腦(LAN, nc 版, 不需要 curl)。
+# 由 Obsidian 外掛「產生 Kobo 安裝包」自動產生。
+${resolveSnippet(opts)}
+DB="/mnt/onboard/.kobo/KoboReader.sqlite"
+${waitWifi(15)}
+pick_host || exit 1
+HOST="$PICKED"
 
 cp "$DB" /tmp/pf-upload.sqlite || exit 1
 SIZE=$(wc -c < /tmp/pf-upload.sqlite)
 
-{ printf "POST /sync HTTP/1.1\\r\\nHost: %s:%s\\r\\nX-PaperFolio-Token: %s\\r\\nContent-Length: %s\\r\\nConnection: close\\r\\n\\r\\n" "$HOST" "$PORT" "$TOKEN" "$SIZE"; cat /tmp/pf-upload.sqlite; } | nc -w 20 "$HOST" "$PORT" > /dev/null 2>&1
+{ printf "POST /sync HTTP/1.1\\r\\nHost: %s:%s\\r\\nX-PaperFolio-Token: %s\\r\\nContent-Length: %s\\r\\nConnection: close\\r\\n\\r\\n" "$HOST" "$PORT" "$TOKEN" "$SIZE"; cat /tmp/pf-upload.sqlite; } | nc -w 60 "$HOST" "$PORT" > /dev/null 2>&1
 RC=$?
 
 rm -f /tmp/pf-upload.sqlite
@@ -50,15 +105,50 @@ exit $RC
 `;
 }
 
-// NickelMenu 設定:主畫面與閱讀中都加一顆按鈕,背景執行(cmd_spawn,不受 10 秒限制)。
+// 連線檢查。**失敗要看得見**——原本連不上時腳本安靜地退出,使用者只看到按鈕
+// 沒反應,無從判斷是 WiFi 沒連、IP 換了、還是 Obsidian 沒開。這支給 cmd_output
+// 用,所以要快:NickelMenu 的 cmd_output 上限是 10 秒。
+function buildPreflightScript(opts: KoboPkgOptions): string {
+	return `#!/bin/sh
+# PaperFolio -- 連線檢查(同步前先跑一次,也給選單的「檢查連線」用)。
+${resolveSnippet(opts)}${waitWifi(4)}
+if [ -z "$ip" ] || [ "$ip" = "0.0.0.0" ]; then
+  echo "PaperFolio：WiFi 還沒連上。"
+  exit 1
+fi
+
+pick_host || {
+  echo "PaperFolio：連得上 WiFi（$ip），但找不到電腦。"
+  echo ""
+  echo "試過 $HOSTS $HOST_BAKED，埠 $PORT。"
+  echo ""
+  echo "可能是電腦的 IP 換了、Obsidian 沒開，或這個網路擋住裝置互連（旅館與咖啡廳常見）。插上 USB 同步一次會自動更新位址；或在 Obsidian 的 PaperFolio 設定按「產生 Kobo 安裝包」重裝。"
+  exit 1
+}
+
+echo "PaperFolio：找得到電腦 $PICKED:$PORT，可以同步。"
+exit 0
+`;
+}
+
+// NickelMenu 設定:同步照舊背景執行(cmd_spawn 不受 10 秒限制),但前面先跑一次
+// 快速連線檢查,連不上就跳 toast 講原因,而不是安靜地什麼都不發生。另外加一顆
+// 「檢查連線」,可以自己按來看完整診斷(cmd_output 會把輸出顯示成訊息框)。
 const NM_CONFIG = `# NickelMenu 設定 -- PaperFolio(由外掛自動產生)
 menu_item :main :PaperFolio 同步畫線 :nickel_wifi :autoconnect
+  chain_success :cmd_output :quiet:8000:sh /mnt/onboard/.adds/folio/preflight.sh
+  chain_failure :dbg_toast :PaperFolio：連不上電腦，按「檢查連線」看原因
   chain_success :cmd_spawn :quiet:sh /mnt/onboard/.adds/folio/send-highlights.sh
-  chain_success :dbg_toast :同步中，稍候看電腦通知
+  chain_success :dbg_toast :PaperFolio：同步中，稍候看電腦通知
+
+menu_item :main :PaperFolio 檢查連線 :nickel_wifi :autoconnect
+  chain_always :cmd_output :9000:sh /mnt/onboard/.adds/folio/preflight.sh
 
 menu_item :reader :PaperFolio 同步畫線 :nickel_wifi :autoconnect
+  chain_success :cmd_output :quiet:8000:sh /mnt/onboard/.adds/folio/preflight.sh
+  chain_failure :dbg_toast :PaperFolio：連不上電腦，按「檢查連線」看原因
   chain_success :cmd_spawn :quiet:sh /mnt/onboard/.adds/folio/send-highlights.sh
-  chain_success :dbg_toast :同步中，稍候看電腦通知
+  chain_success :dbg_toast :PaperFolio：同步中，稍候看電腦通知
 `;
 
 function tarHeader(name: string, size: number): Uint8Array {
@@ -122,6 +212,10 @@ export function buildKoboRootTgz(opts: KoboPkgOptions): Uint8Array {
 		{
 			path: "mnt/onboard/.adds/folio/send-highlights.sh",
 			content: enc.encode(buildSyncScript(opts)),
+		},
+		{
+			path: "mnt/onboard/.adds/folio/preflight.sh",
+			content: enc.encode(buildPreflightScript(opts)),
 		},
 	]);
 	return gzipSync(tar, { level: 6 });
