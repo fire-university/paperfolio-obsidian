@@ -46,6 +46,12 @@ If you read on your computer with the Kobo desktop app, its highlights are impor
 
 ### 3. Wireless over LAN (optional, off by default)
 
+> **A firmware update wipes this.** Kobo firmware updates clear `.adds/`, which
+> takes NickelMenu and this plugin\'s scripts with them — the sync button simply
+> disappears. Reinstall NickelMenu, then generate the package again. (Verified
+> 2026-08-31: NickelMenu v0.6.0 works on firmware 4.45.23697.) Syncing over USB
+> is unaffected.
+
 While Obsidian is open, the plugin can listen on a port so a Kobo on the same Wi-Fi pushes its highlights with one tap — no cable at all.
 
 1. Enable **Wireless receiver (LAN)** in settings. Your OS may ask to allow incoming connections.
