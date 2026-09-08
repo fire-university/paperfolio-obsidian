@@ -10,6 +10,7 @@
 // NickelMenu 本身不在這個包裡(GPL,需另外安裝一次)。
 
 import { gzipSync } from "fflate";
+import { t } from "./i18n";
 
 export interface KoboPkgOptions {
 	host: string;
@@ -110,23 +111,23 @@ exit $RC
 // 用,所以要快:NickelMenu 的 cmd_output 上限是 10 秒。
 function buildPreflightScript(opts: KoboPkgOptions): string {
 	return `#!/bin/sh
-# PaperFolio -- 連線檢查(同步前先跑一次,也給選單的「檢查連線」用)。
+# ${t("pf_comment")}
 ${resolveSnippet(opts)}${waitWifi(4)}
 if [ -z "$ip" ] || [ "$ip" = "0.0.0.0" ]; then
-  echo "PaperFolio：WiFi 還沒連上。"
+  echo "${t("pf_no_wifi")}"
   exit 1
 fi
 
 pick_host || {
-  echo "PaperFolio：連得上 WiFi（$ip），但找不到電腦。"
+  echo "${t("pf_no_computer", { ip: "$ip" })}"
   echo ""
-  echo "試過 $HOSTS $HOST_BAKED，埠 $PORT。"
+  echo "${t("pf_tried", { hosts: "$HOSTS $HOST_BAKED", port: "$PORT" })}"
   echo ""
-  echo "可能是電腦的 IP 換了、Obsidian 沒開，或這個網路擋住裝置互連（旅館與咖啡廳常見）。插上 USB 同步一次會自動更新位址；或在 Obsidian 的 PaperFolio 設定按「產生 Kobo 安裝包」重裝。"
+  echo "${t("pf_hint")}"
   exit 1
 }
 
-echo "PaperFolio：找得到電腦 $PICKED:$PORT，可以同步。"
+echo "${t("pf_ok", { picked: "$PICKED", port: "$PORT" })}"
 exit 0
 `;
 }
@@ -134,22 +135,31 @@ exit 0
 // NickelMenu 設定:同步照舊背景執行(cmd_spawn 不受 10 秒限制),但前面先跑一次
 // 快速連線檢查,連不上就跳 toast 講原因,而不是安靜地什麼都不發生。另外加一顆
 // 「檢查連線」,可以自己按來看完整診斷(cmd_output 會把輸出顯示成訊息框)。
-const NM_CONFIG = `# NickelMenu 設定 -- PaperFolio(由外掛自動產生)
-menu_item :main :PaperFolio 同步畫線 :nickel_wifi :autoconnect
+// 選單標籤與提示都走 i18n。**這裡原本是硬寫的中文**,所以外掛設成英文時
+// 機器上的選單仍然是中文(2026-09-08 道哥回報)——裝置端的字串跟 UI 字串一樣
+// 要進字典,漏掉的那些不會有任何人提醒你。
+// 兩條硬限制:NickelMenu 的 label 不能含半形冒號;整行會被寫進 sh 的 echo "..."
+// 所以字串不能含半形雙引號。兩者都由 test/kobopkg-test.ts 驗。
+function buildNmConfig(): string {
+	const sync = t("nm_sync_label");
+	const unreachable = t("nm_toast_unreachable");
+	const syncing = t("nm_toast_syncing");
+	// main 與 reader 兩處內容一模一樣,只差位置,所以共用同一個產生器。
+	const entry = (loc: string) => `menu_item :${loc} :${sync} :nickel_wifi :autoconnect
   chain_success :cmd_output :quiet:8000:sh /mnt/onboard/.adds/folio/preflight.sh
-  chain_failure :dbg_toast :PaperFolio：連不上電腦，按「檢查連線」看原因
+  chain_failure :dbg_toast :${unreachable}
   chain_success :cmd_spawn :quiet:sh /mnt/onboard/.adds/folio/send-highlights.sh
-  chain_success :dbg_toast :PaperFolio：同步中，稍候看電腦通知
+  chain_success :dbg_toast :${syncing}`;
 
-menu_item :main :PaperFolio 檢查連線 :nickel_wifi :autoconnect
+	return `# ${t("nm_header")}
+${entry("main")}
+
+menu_item :main :${t("nm_check_label")} :nickel_wifi :autoconnect
   chain_always :cmd_output :9000:sh /mnt/onboard/.adds/folio/preflight.sh
 
-menu_item :reader :PaperFolio 同步畫線 :nickel_wifi :autoconnect
-  chain_success :cmd_output :quiet:8000:sh /mnt/onboard/.adds/folio/preflight.sh
-  chain_failure :dbg_toast :PaperFolio：連不上電腦，按「檢查連線」看原因
-  chain_success :cmd_spawn :quiet:sh /mnt/onboard/.adds/folio/send-highlights.sh
-  chain_success :dbg_toast :PaperFolio：同步中，稍候看電腦通知
+${entry("reader")}
 `;
+}
 
 function tarHeader(name: string, size: number): Uint8Array {
 	const buf = new Uint8Array(512);
@@ -207,7 +217,7 @@ export function buildKoboRootTgz(opts: KoboPkgOptions): Uint8Array {
 	const tar = buildTar([
 		{
 			path: "mnt/onboard/.adds/nm/paperfolio",
-			content: enc.encode(NM_CONFIG),
+			content: enc.encode(buildNmConfig()),
 		},
 		{
 			path: "mnt/onboard/.adds/folio/send-highlights.sh",

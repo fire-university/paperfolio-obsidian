@@ -13,6 +13,7 @@ import * as http from "http";
 import { execFileSync as run, spawn } from "child_process";
 import { buildKoboRootTgz } from "../src/kobopkg";
 import { deviceConfigContent } from "../src/devicecfg";
+import { t } from "../src/i18n";
 
 let failures = 0;
 function check(label: string, ok: boolean, detail = "") {
@@ -94,7 +95,11 @@ async function main() {
 	try {
 		const out = run("sh", [preflight], { env, encoding: "utf-8" });
 		check("退出碼 0", true);
-		check("有講找到哪一台", out.includes("找得到電腦 127.0.0.1"), out.trim());
+		check(
+			"有講找到哪一台",
+			out.includes(t("pf_ok", { picked: "127.0.0.1", port: String(port) })),
+			out.trim()
+		);
 	} catch (e) {
 		check("退出碼 0", false, String((e as { stdout?: string }).stdout ?? e));
 	}
@@ -113,9 +118,13 @@ async function main() {
 	} catch (e) {
 		const out = String((e as { stdout?: string }).stdout ?? "");
 		check("以非 0 退出", true);
-		check("有講是找不到電腦而不是 WiFi", out.includes("找不到電腦"), out.trim().split("\n")[0]);
+		check(
+			"有講是找不到電腦而不是 WiFi",
+			out.includes(t("pf_no_computer", { ip: "192.168.1.5" })) && !out.includes(t("pf_no_wifi")),
+			out.trim().split("\n")[0]
+		);
 		check("有把試過的位址列出來", out.includes("127.0.0.1") && out.includes("10.1.2.3"));
-		check("有給下一步", out.includes("產生 Kobo 安裝包"));
+		check("有給下一步", out.includes(t("pf_hint")));
 	}
 
 	console.log("\n設定檔");
