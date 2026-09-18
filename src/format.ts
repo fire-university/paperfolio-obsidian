@@ -11,9 +11,42 @@ export const PRODUCT = "PaperFolio";
 export const SENTINEL_END = "<!-- KOBO:END -->";
 
 // 開始哨兵:核心標記 KOBO:START 固定，後面說明文字隨語言。寫入時用當前語言。
-function sentinelStart(): string {
-	return `<!-- KOBO:START ${t("sentinel_note")} -->`;
+// 哨兵裡帶一個機器可讀的 items=N。
+//
+// **為什麼要寫進檔案而不是每次數一遍**:數渲染出來的內容會綁死樣式
+// (callout 是 `> [!quote]`、bullet 是 `- `),換樣式就全錯,而且錯的方向是
+// 「以為變少了」。把數量記在哨兵裡與樣式無關,而且打開筆記就看得懂。
+// BLOCK_RE 中間是 [\s\S]*?,所以加這一段不會弄壞既有筆記的匹配。
+function sentinelStart(items: number): string {
+	return `<!-- KOBO:START items=${items} ${t("sentinel_note")} -->`;
 }
+
+// 從既有筆記的哨兵讀出上次寫入的條目數。舊筆記沒有 items= 就回 null
+// (＝這次不擋,寫回去時順便補上)。
+export function blockItemCount(text: string): number | null {
+	const m = /<!--\s*KOBO:START[^\n]*?\bitems=(\d+)/.exec(text);
+	return m ? Number(m[1]) : null;
+}
+
+// 這次要產出的比筆記裡現有的少 → 不要覆蓋。
+//
+// 十之八九是裝置那邊出事(重置、書庫同步到一半、書被移掉),不是使用者真的
+// 刪了畫線;而整塊取代會把筆記截斷且完全不出聲。2026-09-18 一天內兩次。
+// 回 null 表示安全可寫;回 {from,to} 表示要擋,數字給摘要點名用。
+//
+// 舊筆記(沒有 items=)一律放行,寫回去時順便把 items= 補上——升級後第一次
+// 同步不會突然整批被擋住。
+export function shrinkGuard(
+	existing: string,
+	block: string
+): { from: number; to: number } | null {
+	const from = blockItemCount(existing);
+	const to = blockItemCount(block);
+	if (from === null || to === null) return null;
+	return to < from ? { from, to } : null;
+}
+
+
 
 // 索引檔名隨語言(道哥保持繁中則不變)。
 export function indexFilename(): string {
@@ -102,8 +135,9 @@ function renderItem(b: Bookmark, s: PaperFolioSettings): string | null {
 }
 
 export function buildKoboBlock(book: Book, s: PaperFolioSettings): string {
-	const parts: string[] = [sentinelStart(), ""];
+	const parts: string[] = [];
 	let currentChapter: string | undefined = undefined;
+	let items = 0;
 	for (const b of book.bookmarks) {
 		if (s.groupByChapter) {
 			const ch = b.chapterTitle || "";
@@ -118,11 +152,13 @@ export function buildKoboBlock(book: Book, s: PaperFolioSettings): string {
 		}
 		const rendered = renderItem(b, s);
 		if (rendered === null) continue;
+		items++;
 		parts.push(rendered);
 		parts.push("");
 	}
 	parts.push(SENTINEL_END);
-	return parts.join("\n");
+	// 條目數 = 實際被 renderItem 產出的那些(略過的不算),所以在最後才組哨兵。
+	return [sentinelStart(items), "", ...parts].join("\n");
 }
 
 // 給即時預覽用:只回傳 KOBO 區塊，不含 frontmatter。
@@ -245,6 +281,7 @@ export interface SyncResult {
 	skippedBooks: number;
 	words?: number; // 這次新增的生詞數(單字同步關著時為 undefined)
 	sources?: string[]; // 這次實際讀到的來源,由 main 填
+	shrunk: string[]; // 因為畫線變少而跳過的書(「書名 274→20」)
 }
 
 export function summarize(r: SyncResult): string {
@@ -256,12 +293,17 @@ export function summarize(r: SyncResult): string {
 	const src = r.sources?.length
 		? t("summary_sources", { list: r.sources.join(" + ") })
 		: "";
+	// 被擋下來的一定要點名。只講「跳過 3 本」等於沒講——要能一眼分辨
+	// 「機器剛重置」還是「這本我真的刪過畫線」。
+	const shrunk = r.shrunk?.length
+		? t("summary_shrunk", { n: r.shrunk.length, list: r.shrunk.join("、") })
+		: "";
 	return (
 		t("summary", {
 			h: r.highlights,
 			d: r.dogears,
 			books: r.books,
 			extra,
-		}) + words + src
+		}) + words + src + shrunk
 	);
 }

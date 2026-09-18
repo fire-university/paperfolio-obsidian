@@ -194,6 +194,8 @@ const EN: Dict = {
 	// Kobo Desktop,結果是「同步成功但機器上的側載書一條都沒進來」——
 	// 2026-09-18 就這樣白跑一趟,而畫面上完全看不出差別。
 	summary_sources: "\nRead from: {list}",
+	summary_shrunk:
+		"\nSkipped {n} book(s) whose highlights shrank (not overwritten): {list}. If you really deleted them, remove the items= value from that note's KOBO:START comment and sync again.",
 	src_device: "Kobo eReader (USB)",
 	src_wireless: "wireless push",
 	src_desktop: "Kobo Desktop",
@@ -327,6 +329,8 @@ const ZH: Dict = {
 	summary_extra: "，略過 {n} 本零星書",
 	summary_words: "，另有 {n} 個新單字",
 	summary_sources: "\n讀取來源：{list}",
+	summary_shrunk:
+		"\n跳過 {n} 本：畫線數變少，沒有覆蓋（{list}）。如果你確實刪過畫線，把那份筆記 KOBO:START 裡的 items= 刪掉再同步一次。",
 	src_device: "Kobo 機器（USB）",
 	src_wireless: "無線推送",
 	src_desktop: "Kobo Desktop",

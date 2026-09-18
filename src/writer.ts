@@ -14,6 +14,7 @@ import {
 	WordListResult,
 } from "./wordlist";
 import {
+	shrinkGuard,
 	bookFilename,
 	buildKoboBlock,
 	newFileContent,
@@ -31,6 +32,10 @@ export interface BookStats {
 	new: number;
 	highlights: number;
 	dogears: number;
+	// 因為畫線變少而沒有覆蓋時填這兩個(筆記原本幾條 → 這次只產出幾條)
+	shrunkFrom?: number;
+	shrunkTo?: number;
+	title?: string; // 給摘要點名用
 }
 
 async function ensureFolder(app: App, folder: string): Promise<void> {
@@ -65,6 +70,22 @@ export async function writeBook(
 	let content: string;
 	if (await app.vault.adapter.exists(path)) {
 		const existing = await app.vault.adapter.read(path);
+		// 變少就不覆蓋。裝置重置或同步到一半時,整塊取代會把筆記截斷,
+		// 而且完全不出聲——2026-09-18 一天內兩次。要解除:把該筆記哨兵裡的
+		// items=N 刪掉或改小,下次同步就會正常覆蓋。
+		const shrink = shrinkGuard(existing, block);
+		if (shrink) {
+			return {
+				filename,
+				written: false,
+				new: 0,
+				highlights,
+				dogears,
+				shrunkFrom: shrink.from,
+				shrunkTo: shrink.to,
+				title: book.title,
+			};
+		}
 		content = mergeIntoExisting(existing, block);
 		if (content === existing) {
 			// 內容沒變:仍更新指紋，但不重寫檔

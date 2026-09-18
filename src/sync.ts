@@ -56,6 +56,7 @@ export async function runSync(
 		newItems: 0,
 		filesWritten: 0,
 		skippedBooks: 0,
+		shrunk: [],
 	};
 	if (settings.createIndexNote) {
 		await seedIndexState(app, settings, indexState);
@@ -75,6 +76,13 @@ export async function runSync(
 		enrichChapterTitles(book, volumeRoots, chapterCache);
 
 		const stats = await writeBook(app, book, settings, state);
+		// 變少 → 沒寫檔,記下來讓摘要點名,不計入本次匯入的書數
+		if (stats.shrunkFrom !== undefined) {
+			result.shrunk.push(
+				`${stats.title ?? stats.filename} ${stats.shrunkFrom}→${stats.shrunkTo}`
+			);
+			continue;
+		}
 		result.books++;
 		result.highlights += stats.highlights;
 		result.dogears += stats.dogears;
