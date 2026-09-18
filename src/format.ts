@@ -231,3 +231,37 @@ export function buildIndexContent(
 		"",
 	].join("\n");
 }
+
+// ---------- 同步摘要 ----------
+// 放這裡而不是 sync.ts:這支是純字串組裝,而 sync.ts import 了 obsidian,
+// 放那邊 node 就測不到它(照本檔開頭那條「零 Obsidian 依賴」的分工)。
+
+export interface SyncResult {
+	books: number;
+	highlights: number;
+	dogears: number;
+	newItems: number;
+	filesWritten: number;
+	skippedBooks: number;
+	words?: number; // 這次新增的生詞數(單字同步關著時為 undefined)
+	sources?: string[]; // 這次實際讀到的來源,由 main 填
+}
+
+export function summarize(r: SyncResult): string {
+	const extra = r.skippedBooks
+		? t("summary_extra", { n: r.skippedBooks })
+		: "";
+	const words = r.words ? t("summary_words", { n: r.words }) : "";
+	// 來源一定要寫出來(見 i18n 的 summary_sources 註解)。
+	const src = r.sources?.length
+		? t("summary_sources", { list: r.sources.join(" + ") })
+		: "";
+	return (
+		t("summary", {
+			h: r.highlights,
+			d: r.dogears,
+			books: r.books,
+			extra,
+		}) + words + src
+	);
+}

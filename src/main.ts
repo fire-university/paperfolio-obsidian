@@ -137,12 +137,15 @@ export default class PaperFolioPlugin extends Plugin {
 			const wantWords = this.settings.syncWordList;
 
 			// 來源一:裝置(無線推來的位元組，或掛載中的 KoboReader.sqlite)
+			const sources: string[] = [];
 			if (pushedBytes) {
+				sources.push(t("src_wireless"));
 				lists.push(await readBookmarks(pushedBytes));
 				if (wantWords) words.push(...(await readWordList(pushedBytes)));
 			} else {
 				const dev = this.dbPath();
 				if (fs.existsSync(dev)) {
+					sources.push(t("src_device"));
 					const bytes = new Uint8Array(fs.readFileSync(dev));
 					lists.push(await readBookmarks(bytes));
 					if (wantWords) words.push(...(await readWordList(bytes)));
@@ -165,6 +168,7 @@ export default class PaperFolioPlugin extends Plugin {
 			// 來源二:Kobo Desktop 本機資料庫(電腦上讀書畫的線)
 			const desk = this.desktopDbPath();
 			if (desk && fs.existsSync(desk)) {
+				sources.push(t("src_desktop"));
 				const bytes = new Uint8Array(fs.readFileSync(desk));
 				lists.push(await readBookmarks(bytes));
 				if (wantWords) words.push(...(await readWordList(bytes)));
@@ -231,6 +235,7 @@ export default class PaperFolioPlugin extends Plugin {
 				}
 			}
 
+			result.sources = sources;
 			this.syncState = state.export();
 			await this.saveAll();
 			return result;

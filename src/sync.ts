@@ -8,36 +8,15 @@ import type { State } from "./state";
 import { writeBook, writeIndex, IndexRow } from "./writer";
 import { enrichChapterTitles, ChapterCache } from "./epub";
 import { indexFilename } from "./format";
+import type { SyncResult } from "./format";
 import { t } from "./i18n";
 
 // 索引狀態:檔名 → [書名, 畫線數, 折頁數]。持久化在 data.json，跨同步累積,
 // 這樣只同步部分來源(例如只有 Kobo Desktop)時，索引不會縮水成只剩本次那幾本。
 export type IndexState = Record<string, [string, number, number]>;
 
-export interface SyncResult {
-	books: number;
-	highlights: number;
-	dogears: number;
-	newItems: number;
-	filesWritten: number;
-	skippedBooks: number;
-	words?: number; // 這次新增的生詞數(單字同步關著時為 undefined)
-}
-
-export function summarize(r: SyncResult): string {
-	const extra = r.skippedBooks
-		? t("summary_extra", { n: r.skippedBooks })
-		: "";
-	const words = r.words ? t("summary_words", { n: r.words }) : "";
-	return (
-		t("summary", {
-			h: r.highlights,
-			d: r.dogears,
-			books: r.books,
-			extra,
-		}) + words
-	);
-}
+export type { SyncResult } from "./format";
+export { summarize } from "./format";
 
 // 升級相容:indexState 還是空的時候，從既有的索引檔回填，
 // 避免第一次只同步部分來源(例如只有 Kobo Desktop)就把索引洗成只剩那幾本。

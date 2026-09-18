@@ -190,6 +190,13 @@ const EN: Dict = {
 	summary: "Imported {h} highlights, {d} dogears ({books} books{extra})",
 	summary_extra: ", skipped {n} sparse books",
 	summary_words: " · {n} new words",
+	// 同步來源。**一定要講**:來源是自動偵測的,USB 沒掛載時它會安靜地只讀
+	// Kobo Desktop,結果是「同步成功但機器上的側載書一條都沒進來」——
+	// 2026-09-18 就這樣白跑一趟,而畫面上完全看不出差別。
+	summary_sources: "\nRead from: {list}",
+	src_device: "Kobo eReader (USB)",
+	src_wireless: "wireless push",
+	src_desktop: "Kobo Desktop",
 
 	err_sync_in_progress: "Sync already in progress, please wait.",
 };
@@ -319,6 +326,10 @@ const ZH: Dict = {
 	summary: "已匯入 {h} 條畫線、{d} 個折頁（{books} 本書{extra}）",
 	summary_extra: "，略過 {n} 本零星書",
 	summary_words: "，另有 {n} 個新單字",
+	summary_sources: "\n讀取來源：{list}",
+	src_device: "Kobo 機器（USB）",
+	src_wireless: "無線推送",
+	src_desktop: "Kobo Desktop",
 
 	err_sync_in_progress: "同步進行中，請稍候。",
 };
