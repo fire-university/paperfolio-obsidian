@@ -545,6 +545,16 @@ class PaperFolioSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(t("set_toc_name"))
+			.setDesc(t("set_toc_desc"))
+			.addToggle((tg) =>
+				tg.setValue(s.chapterToc).onChange((v) => {
+					s.chapterToc = v;
+					save();
+				})
+			);
+
+		new Setting(containerEl)
 			.setName(t("set_date_name"))
 			.addToggle((tg) =>
 				tg.setValue(s.showDate).onChange((v) => {

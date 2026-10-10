@@ -91,6 +91,11 @@ const EN: Dict = {
 	set_group_name: "Group by chapter",
 	set_group_desc:
 		"Use real chapter names (from the Kobo table of contents) as subheadings.",
+	set_toc_name: "Chapter table of contents",
+	set_toc_desc:
+		"Adds a table at the top of each book's generated section listing every chapter with its highlight count; click a chapter to jump to it. Needs \"Group by chapter\". Shown only for books with 2+ chapters.",
+	toc_col_chapter: "Chapter",
+	toc_col_highlights: "Highlights",
 	set_date_name: "Show date",
 	set_color_name: "Color as tag",
 	set_color_desc: "Add the Kobo highlight color as a #kobo/color-N tag.",
@@ -244,6 +249,11 @@ const ZH: Dict = {
 	style_bullet: "條列",
 	set_group_name: "依章節分組",
 	set_group_desc: "用真章節名（來自 Kobo 目錄）當小標題。",
+	set_toc_name: "章節目錄",
+	set_toc_desc:
+		"在每本書自動產生區塊的最前面加一張表，列出各章節與畫線數，點章節名稱就跳到那一段。需要開啟「依章節分組」；只有 2 章以上的書才會產生。",
+	toc_col_chapter: "章節",
+	toc_col_highlights: "畫線數",
 	set_date_name: "顯示日期",
 	set_color_name: "顏色轉標籤",
 	set_color_desc: "把 Kobo 畫線顏色加成 #kobo/color-N 標籤。",

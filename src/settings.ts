@@ -24,6 +24,8 @@ export interface PaperFolioSettings {
 	// --- 排版 ---
 	highlightStyle: HighlightStyle;
 	groupByChapter: boolean;
+	// 每本書最前面放章節目錄表(章節＋畫線數，可點擊跳轉)；需要「依章節分組」開著。
+	chapterToc: boolean;
 	showDate: boolean;
 	colorAsTag: boolean;
 	includeDogears: boolean; // 預設 false(道哥只要畫線;且無 epub 還原)
@@ -60,6 +62,7 @@ export const DEFAULT_SETTINGS: PaperFolioSettings = {
 	createIndexNote: true,
 	highlightStyle: "callout",
 	groupByChapter: true,
+	chapterToc: true,
 	showDate: true,
 	colorAsTag: false,
 	includeDogears: false,
