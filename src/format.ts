@@ -134,8 +134,32 @@ function renderItem(b: Bookmark, s: PaperFolioSettings): string | null {
 	return renderHighlight(b, s);
 }
 
+// Obsidian 標題連結不能含這些字元(# | ^ : % ? [ ] \)，連結目標先換成空格，
+// 顯示文字仍用原標題。
+const HEADING_LINK_UNSAFE = /[#|^:%?[\]\\]/g;
+
+// 章節目錄:章節名(可點擊跳到該小標題)＋該章實際產出的條目數。
+// 同名章節若分散在不同位置，數量合併、連結指向第一個(Obsidian 同名標題的行為)。
+// 少於 2 章就不產生——只有一章的目錄沒有用處。
+function buildChapterToc(chapters: Map<string, number>): string[] {
+	const rows = [...chapters].filter(([, n]) => n > 0);
+	if (rows.length < 2) return [];
+	const out = [
+		`| ${t("toc_col_chapter")} | ${t("toc_col_highlights")} |`,
+		"| :-- | --: |",
+	];
+	for (const [ch, n] of rows) {
+		const target = ch.replace(HEADING_LINK_UNSAFE, " ");
+		const label = ch.replace(/\|/g, "\\|");
+		out.push(`| [[#${target}\\|${label}]] | ${n} |`);
+	}
+	out.push("");
+	return out;
+}
+
 export function buildKoboBlock(book: Book, s: PaperFolioSettings): string {
 	const parts: string[] = [];
+	const chapters = new Map<string, number>();
 	let currentChapter: string | undefined = undefined;
 	let items = 0;
 	for (const b of book.bookmarks) {
@@ -153,12 +177,16 @@ export function buildKoboBlock(book: Book, s: PaperFolioSettings): string {
 		const rendered = renderItem(b, s);
 		if (rendered === null) continue;
 		items++;
+		if (s.groupByChapter && currentChapter) {
+			chapters.set(currentChapter, (chapters.get(currentChapter) ?? 0) + 1);
+		}
 		parts.push(rendered);
 		parts.push("");
 	}
 	parts.push(SENTINEL_END);
 	// 條目數 = 實際被 renderItem 產出的那些(略過的不算),所以在最後才組哨兵。
-	return [sentinelStart(items), "", ...parts].join("\n");
+	const toc = s.groupByChapter && s.chapterToc ? buildChapterToc(chapters) : [];
+	return [sentinelStart(items), "", ...toc, ...parts].join("\n");
 }
 
 // 給即時預覽用:只回傳 KOBO 區塊，不含 frontmatter。
