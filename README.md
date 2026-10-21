@@ -151,6 +151,10 @@ SQLite parsing uses [sql.js](https://github.com/sql-js/sql.js); EPUB table-of-co
 
 Kobo is a trademark of Rakuten Kobo Inc. This project is not affiliated with or endorsed by Rakuten Kobo Inc.
 
+## Author
+
+Made by Doug of [FIRE University](https://firetw.com/en/) — more of my apps and tools at [firetw.com/en/apps](https://firetw.com/en/apps/).
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

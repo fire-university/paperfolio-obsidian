@@ -154,6 +154,10 @@ SQLite 解析使用 [sql.js](https://github.com/sql-js/sql.js)；讀取 EPUB 目
 
 Kobo 是 Rakuten Kobo Inc. 的商標。本專案與 Rakuten Kobo Inc. 無任何從屬或背書關係。
 
+## 作者
+
+由 [FIRE人生大學](https://firetw.com/) 的道哥製作，我做的其他 App 與工具在 [firetw.com/apps](https://firetw.com/apps/)。
+
 ## 授權
 
 MIT，見 [LICENSE](LICENSE)。
